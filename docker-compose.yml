@@ -1,0 +1,91 @@
+# AI Hub — self-hosted service stack
+#
+# Runs the always-on pieces of the hub. Designed to be:
+#   • run directly:   docker compose up -d
+#   • imported by Coolify as a resource (each service becomes a supervised tile)
+#
+# Secrets come from a git-ignored .env (see .env.example for the variable NAMES).
+# Never hard-code credentials in this file.
+#
+# In Coolify: map the volumes below to "Persistent Storage" so data and the
+# shared /workspace survive redeploys, and keep the exposed ports behind
+# Tailscale / an SSH tunnel — do not publish them naked (see SETUP.md §Security).
+
+name: ai-hub
+
+services:
+  # ── Browser IDE + terminal: where you sit and drive Claude Code ────────────
+  code-server:
+    image: codercom/code-server:latest
+    container_name: ai-hub-code-server
+    restart: unless-stopped
+    environment:
+      # Password auth for the IDE. Set PASSWORD in .env (or Coolify env).
+      PASSWORD: ${CODE_SERVER_PASSWORD:?set CODE_SERVER_PASSWORD in .env}
+    volumes:
+      - ./workspace:/home/coder/workspace          # shared filesystem
+      - code-server-config:/home/coder/.config     # IDE settings persist
+    ports:
+      # Bind to loopback only; reach it via SSH tunnel / Tailscale, or let
+      # Coolify's reverse proxy terminate TLS in front of it.
+      - "127.0.0.1:8080:8080"
+    depends_on:
+      - postgres
+
+  # ── Shared brain: Postgres with pgvector for memory / embeddings ───────────
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: ai-hub-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-aihub}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${POSTGRES_DB:-aihub}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    ports:
+      - "127.0.0.1:5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-aihub}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── Memory MCP server (optional, remote/HTTP flavor) ───────────────────────
+  # Most MCP connectors run per-session over stdio via .mcp.json (see D-0003).
+  # This service is here for a *shared, always-on* memory endpoint that multiple
+  # AI clients (not just Claude Code) can reach. Swap the image for your chosen
+  # memory server (e.g. a Mem0 self-host) and expose its port to the hub network.
+  # Left commented until a concrete remote memory server is selected.
+  #
+  # memory-mcp:
+  #   image: <your-memory-mcp-image>
+  #   container_name: ai-hub-memory-mcp
+  #   restart: unless-stopped
+  #   environment:
+  #     DATABASE_URL: postgres://${POSTGRES_USER:-aihub}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-aihub}
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #   ports:
+  #     - "127.0.0.1:9100:9100"
+
+  # ── Hub app (future): Next.js dashboard / API surface ──────────────────────
+  # Uncomment once the app exists under ./app. Coolify can auto-redeploy this
+  # from Git on push.
+  #
+  # hub-app:
+  #   build: ./app
+  #   container_name: ai-hub-app
+  #   restart: unless-stopped
+  #   environment:
+  #     DATABASE_URL: postgres://${POSTGRES_USER:-aihub}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-aihub}
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #   ports:
+  #     - "127.0.0.1:3000:3000"
+
+volumes:
+  postgres-data:
+  code-server-config:
