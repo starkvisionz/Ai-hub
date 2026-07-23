@@ -11,11 +11,13 @@ export async function GET(request: Request) {
   const offset = Number(searchParams.get("offset") ?? "0");
   const q = searchParams.get("q") ?? undefined;
   const kind = searchParams.get("kind") ?? undefined;
+  const agent = searchParams.get("agent") ?? undefined;
   const rows = await recentMemory({
     limit: Number.isFinite(limit) ? limit : 20,
     offset: Number.isFinite(offset) ? offset : 0,
     q,
     kind,
+    agent,
   });
   if (rows === null) {
     return NextResponse.json(

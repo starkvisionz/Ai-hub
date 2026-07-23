@@ -12,43 +12,52 @@ const PAGE_SIZE = 25;
 export default async function BrainPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; kind?: string; page?: string }>;
+  searchParams: Promise<{ q?: string; kind?: string; agent?: string; page?: string }>;
 }) {
   const sp = await searchParams;
   const query = sp.q?.trim() ?? "";
   const kindFilter = sp.kind?.trim() ?? "";
+  const agentFilter = sp.agent?.trim() ?? "";
   const page = Math.max(1, Number(sp.page) || 1);
   const offset = (page - 1) * PAGE_SIZE;
 
   const [fetched, stats] = await Promise.all([
-    // Fetch one extra row to detect whether a next page exists.
     recentMemory({
       limit: PAGE_SIZE + 1,
       offset,
       q: query || undefined,
       kind: kindFilter || undefined,
+      agent: agentFilter || undefined,
     }),
     memoryStats(),
   ]);
 
   const hasNext = fetched !== null && fetched.length > PAGE_SIZE;
   const entries = fetched === null ? null : fetched.slice(0, PAGE_SIZE);
+  const hasFilters = Boolean(query || kindFilter || agentFilter);
 
-  const pageHref = (p: number) => {
+  const buildHref = (
+    over: Partial<{ q: string; kind: string; agent: string; page: number }>,
+  ) => {
     const params = new URLSearchParams();
-    if (query) params.set("q", query);
-    if (kindFilter) params.set("kind", kindFilter);
+    const q = over.q ?? query;
+    const kind = over.kind ?? kindFilter;
+    const agent = over.agent ?? agentFilter;
+    const p = over.page ?? 1;
+    if (q) params.set("q", q);
+    if (kind) params.set("kind", kind);
+    if (agent) params.set("agent", agent);
     if (p > 1) params.set("page", String(p));
     const s = params.toString();
     return s ? `/brain?${s}` : "/brain";
   };
 
-  const chipHref = (k: string) => {
-    const params = new URLSearchParams();
+  const exportHref = (format: "json" | "csv") => {
+    const params = new URLSearchParams({ format });
     if (query) params.set("q", query);
-    if (k) params.set("kind", k);
-    const s = params.toString();
-    return s ? `/brain?${s}` : "/brain";
+    if (kindFilter) params.set("kind", kindFilter);
+    if (agentFilter) params.set("agent", agentFilter);
+    return `/api/export?${params.toString()}`;
   };
 
   return (
@@ -62,11 +71,29 @@ export default async function BrainPage({
         >
           ← dashboard
         </Link>
-        <h1 className="mt-2 text-2xl font-bold tracking-tight">Shared brain</h1>
-        <p className="text-sm text-slate-500 dark:text-slate-400">
-          Context any agent or workflow has written to the hub
-          {stats ? ` · ${stats.total} total` : ""}.
-        </p>
+        <div className="mt-2 flex items-end justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">Shared brain</h1>
+            <p className="text-sm text-slate-500 dark:text-slate-400">
+              Context any agent or workflow has written to the hub
+              {stats ? ` · ${stats.total} total` : ""}.
+            </p>
+          </div>
+          <div className="flex shrink-0 gap-2 text-xs">
+            <a
+              href={exportHref("json")}
+              className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-slate-500 hover:border-slate-300 dark:border-slate-700 dark:text-slate-400"
+            >
+              Export JSON
+            </a>
+            <a
+              href={exportHref("csv")}
+              className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-slate-500 hover:border-slate-300 dark:border-slate-700 dark:text-slate-400"
+            >
+              CSV
+            </a>
+          </div>
+        </div>
       </header>
 
       <form method="get" className="mb-3 flex gap-2">
@@ -77,13 +104,14 @@ export default async function BrainPage({
           className="flex-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-slate-400 dark:border-slate-700 dark:bg-slate-900"
         />
         {kindFilter && <input type="hidden" name="kind" value={kindFilter} />}
+        {agentFilter && <input type="hidden" name="agent" value={agentFilter} />}
         <button
           type="submit"
           className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white dark:bg-white dark:text-slate-900"
         >
           Search
         </button>
-        {(query || kindFilter) && (
+        {hasFilters && (
           <Link
             href="/brain"
             className="grid place-items-center rounded-lg border border-slate-200 px-3 text-sm text-slate-500 dark:border-slate-700"
@@ -94,13 +122,14 @@ export default async function BrainPage({
       </form>
 
       {stats && stats.byKind.length > 0 && (
-        <div className="mb-4 flex flex-wrap gap-2">
+        <div className="mb-2 flex flex-wrap items-center gap-2">
+          <span className="text-xs uppercase tracking-wider text-slate-400">kind</span>
           {stats.byKind.map((k) => {
             const active = k.kind === kindFilter;
             return (
               <Link
                 key={k.kind}
-                href={active ? chipHref("") : chipHref(k.kind)}
+                href={buildHref({ kind: active ? "" : k.kind })}
                 className={`rounded-full border px-2.5 py-1 text-xs transition ${
                   active
                     ? "border-slate-900 bg-slate-900 text-white dark:border-white dark:bg-white dark:text-slate-900"
@@ -114,14 +143,37 @@ export default async function BrainPage({
         </div>
       )}
 
+      {stats && stats.byAgent.length > 0 && (
+        <div className="mb-4 flex flex-wrap items-center gap-2">
+          <span className="text-xs uppercase tracking-wider text-slate-400">agent</span>
+          {stats.byAgent.map((a) => {
+            const active = a.agent === agentFilter;
+            return (
+              <Link
+                key={a.agent}
+                href={buildHref({ agent: active ? "" : a.agent })}
+                className={`rounded-full border px-2.5 py-1 text-xs transition ${
+                  active
+                    ? "border-slate-900 bg-slate-900 text-white dark:border-white dark:bg-white dark:text-slate-900"
+                    : "border-slate-200 text-slate-500 hover:border-slate-300 dark:border-slate-700 dark:text-slate-400"
+                }`}
+              >
+                {a.agent} <span className="opacity-60">{a.count}</span>
+              </Link>
+            );
+          })}
+        </div>
+      )}
+
       <MemoryComposer />
 
-      {(query || kindFilter) && (
+      {hasFilters && (
         <p className="mb-3 text-xs text-slate-400">
           {entries === null ? "—" : entries.length} result
           {entries?.length === 1 ? "" : "s"} on this page
           {query && ` for “${query}”`}
-          {kindFilter && ` in kind “${kindFilter}”`}
+          {kindFilter && ` · kind “${kindFilter}”`}
+          {agentFilter && ` · agent “${agentFilter}”`}
         </p>
       )}
 
@@ -131,7 +183,7 @@ export default async function BrainPage({
           dbConfigured={isDbConfigured()}
           manageable
           emptyHint={
-            query || kindFilter
+            hasFilters
               ? "No entries match this filter."
               : "No entries yet — add one above or POST /api/memory."
           }
@@ -142,7 +194,7 @@ export default async function BrainPage({
         <nav className="mt-4 flex items-center justify-between text-sm">
           {page > 1 ? (
             <Link
-              href={pageHref(page - 1)}
+              href={buildHref({ page: page - 1 })}
               className="rounded-lg border border-slate-200 px-3 py-1.5 text-slate-600 hover:border-slate-300 dark:border-slate-700 dark:text-slate-300"
             >
               ← Newer
@@ -153,7 +205,7 @@ export default async function BrainPage({
           <span className="text-xs text-slate-400">page {page}</span>
           {hasNext ? (
             <Link
-              href={pageHref(page + 1)}
+              href={buildHref({ page: page + 1 })}
               className="rounded-lg border border-slate-200 px-3 py-1.5 text-slate-600 hover:border-slate-300 dark:border-slate-700 dark:text-slate-300"
             >
               Older →

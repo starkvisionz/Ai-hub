@@ -51,6 +51,12 @@ docker compose config -q                 # stack validates
 
 ## Recently done
 
+- **2026-07-23** — Added **agent dimension + export** (PR #1): exact **agent
+  filter** across the query layer + stats `byAgent`; **agent filter chips** on
+  `/brain` (alongside kind chips); **export** the (filtered) brain as JSON or CSV
+  via `GET /api/export` + Export buttons on `/brain`. Query filter extracted to a
+  shared `buildFilter`. Build + typecheck + lint green; agent routes + export
+  (503 no-DB, headers) smoke-tested.
 - **2026-07-23** — Added **pagination, edit, kind chart, webhook workflow**
   (PR #1): `/brain` **pagination** (25/page, newer/older); **inline edit** per
   entry (`PATCH /api/memory?id=`) via `ManagedEntry`; a **kind-distribution bar

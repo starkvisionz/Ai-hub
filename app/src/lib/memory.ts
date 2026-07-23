@@ -38,19 +38,16 @@ export type MemoryQuery = {
   offset?: number;
   q?: string;
   kind?: string;
+  agent?: string;
 };
 
-export async function recentMemory(
-  opts: MemoryQuery = {},
-): Promise<MemoryEntry[] | null> {
-  if (!(await ensureSchema())) return null;
-  const safeLimit = Math.min(Math.max(1, Math.floor(opts.limit ?? 20)), 101);
-  const safeOffset = Math.max(0, Math.floor(opts.offset ?? 0));
-  const term = opts.q?.trim();
-  const kindFilter = opts.kind?.trim();
-
+// Build the shared WHERE clause for content search + exact kind/agent filters.
+function buildFilter(opts: MemoryQuery): { where: string; params: unknown[] } {
   const conditions: string[] = [];
   const params: unknown[] = [];
+  const term = opts.q?.trim();
+  const kindFilter = opts.kind?.trim();
+  const agentFilter = opts.agent?.trim();
   if (term) {
     params.push(term);
     const p = `$${params.length}`;
@@ -62,7 +59,23 @@ export async function recentMemory(
     params.push(kindFilter);
     conditions.push(`kind = $${params.length}`);
   }
-  const where = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
+  if (agentFilter) {
+    params.push(agentFilter);
+    conditions.push(`agent = $${params.length}`);
+  }
+  return {
+    where: conditions.length ? `WHERE ${conditions.join(" AND ")}` : "",
+    params,
+  };
+}
+
+export async function recentMemory(
+  opts: MemoryQuery = {},
+): Promise<MemoryEntry[] | null> {
+  if (!(await ensureSchema())) return null;
+  const safeLimit = Math.min(Math.max(1, Math.floor(opts.limit ?? 20)), 101);
+  const safeOffset = Math.max(0, Math.floor(opts.offset ?? 0));
+  const { where, params } = buildFilter(opts);
   params.push(safeLimit);
   const limitP = `$${params.length}`;
   params.push(safeOffset);
@@ -74,6 +87,25 @@ export async function recentMemory(
       ${where}
       ORDER BY created_at DESC
       LIMIT ${limitP} OFFSET ${offsetP}`,
+    params,
+  );
+  return r ? r.rows : null;
+}
+
+// All matching rows (capped) for export — no pagination.
+export async function exportMemory(
+  opts: Omit<MemoryQuery, "limit" | "offset"> = {},
+  cap = 5000,
+): Promise<MemoryEntry[] | null> {
+  if (!(await ensureSchema())) return null;
+  const { where, params } = buildFilter(opts);
+  params.push(Math.min(Math.max(1, cap), 50000));
+  const r = await query<MemoryEntry>(
+    `SELECT id, agent, kind, content, created_at
+       FROM hub_memory
+      ${where}
+      ORDER BY created_at DESC
+      LIMIT $${params.length}`,
     params,
   );
   return r ? r.rows : null;
@@ -116,6 +148,7 @@ export async function deleteMemory(id: number): Promise<boolean> {
 export type MemoryStats = {
   total: number;
   byKind: { kind: string; count: number }[];
+  byAgent: { agent: string; count: number }[];
   lastAt: string | null;
 };
 
@@ -132,12 +165,23 @@ export async function memoryStats(): Promise<MemoryStats | null> {
       ORDER BY count(*) DESC
       LIMIT 12`,
   );
+  const agentRes = await query<{ agent: string; count: string }>(
+    `SELECT agent, count(*)::text AS count
+       FROM hub_memory
+      GROUP BY agent
+      ORDER BY count(*) DESC
+      LIMIT 12`,
+  );
   return {
     total: Number(totalRes.rows[0]?.total ?? 0),
     lastAt: totalRes.rows[0]?.last_at ?? null,
     byKind: (kindRes?.rows ?? []).map((k) => ({
       kind: k.kind,
       count: Number(k.count),
+    })),
+    byAgent: (agentRes?.rows ?? []).map((a) => ({
+      agent: a.agent,
+      count: Number(a.count),
     })),
   };
 }
