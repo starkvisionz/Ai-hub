@@ -35,9 +35,24 @@ export async function ensureSchema(): Promise<boolean> {
 
 export async function recentMemory(
   limit = 20,
+  q?: string,
 ): Promise<MemoryEntry[] | null> {
   if (!(await ensureSchema())) return null;
   const safeLimit = Math.min(Math.max(1, Math.floor(limit)), 100);
+  const term = q?.trim();
+  if (term) {
+    const r = await query<MemoryEntry>(
+      `SELECT id, agent, kind, content, created_at
+         FROM hub_memory
+        WHERE content ILIKE '%' || $1 || '%'
+           OR agent   ILIKE '%' || $1 || '%'
+           OR kind    ILIKE '%' || $1 || '%'
+        ORDER BY created_at DESC
+        LIMIT $2`,
+      [term, safeLimit],
+    );
+    return r ? r.rows : null;
+  }
   const r = await query<MemoryEntry>(
     `SELECT id, agent, kind, content, created_at
        FROM hub_memory

@@ -32,9 +32,10 @@ in `.env`, not committed). Open PR: **#1**.
 6. **Pick a restic backend** (Backblaze B2 vs S3) and create the bucket.
 7. **Decide the first project(s)** the hub coordinates → clone under
    `workspace/repos/`.
-8. **Hub app next** (`app/`): brain, live health, and Basic Auth are done. Next
-   candidates — a write box / form to post to `/api/memory` from the UI, wire n8n
-   to log workflow runs into the brain, and auto-refresh the dashboard.
+8. **Hub app next** (`app/`): brain + live health + Basic Auth + write box +
+   `/brain` search + auto-refresh + n8n starter are done. Next candidates —
+   import & activate the n8n workflow against the real brain; add pagination to
+   `/brain`; delete/edit entries; per-kind filters; a simple metrics tile.
 9. **CI**: add `.github/workflows` to lint compose + typecheck/build the app on PRs.
 10. *(Later)* Forgejo, if Git sovereignty is wanted.
 
@@ -51,6 +52,13 @@ docker compose config -q                 # stack validates
 
 ## Recently done
 
+- **2026-07-23** — Grew the app's **interactive layer** (PR #1): a **write box**
+  (`MemoryComposer`) posting to `/api/memory`; a **`/brain`** browser with
+  full-text **search** (`/api/memory?q=`); **auto-refresh** (`LiveRefresh`) on
+  both pages so health + feed stay live. Added an **n8n starter workflow**
+  (`n8n/log-to-brain.workflow.json`) that logs heartbeats into the brain. Build +
+  typecheck + lint green; routes smoke-tested (`/`, `/brain`, `/brain?q=`,
+  `/api/memory?q=` all 200).
 - **2026-07-23** — Made the hub app **live** (PR #1): Postgres **shared brain**
   (`hub_memory`, schema in `app/db/schema.sql`) with `GET/POST /api/memory`;
   **server-side health probes** per active service (live status dots); optional

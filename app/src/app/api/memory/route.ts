@@ -8,7 +8,8 @@ export const dynamic = "force-dynamic";
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const limit = Number(searchParams.get("limit") ?? "20");
-  const rows = await recentMemory(Number.isFinite(limit) ? limit : 20);
+  const q = searchParams.get("q") ?? undefined;
+  const rows = await recentMemory(Number.isFinite(limit) ? limit : 20, q);
   if (rows === null) {
     return NextResponse.json(
       { available: false, reason: isDbConfigured() ? "db_unreachable" : "db_not_configured", entries: [] },

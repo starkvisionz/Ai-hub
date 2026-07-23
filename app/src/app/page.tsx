@@ -1,5 +1,6 @@
 import { ServiceCard } from "@/components/ServiceCard";
 import { MemoryPanel } from "@/components/MemoryPanel";
+import { LiveRefresh } from "@/components/LiveRefresh";
 import { services, type HubService } from "@/lib/services";
 import { checkAll } from "@/lib/health";
 
@@ -15,6 +16,7 @@ export default async function Home() {
 
   return (
     <main className="mx-auto max-w-5xl px-6 py-12">
+      <LiveRefresh seconds={20} />
       <header className="mb-10">
         <div className="flex items-center gap-3">
           <span

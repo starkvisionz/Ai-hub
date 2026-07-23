@@ -33,11 +33,14 @@ renders. Set these in Coolify (point URLs at your Tailscale hostname):
 ## Routes
 
 - `/` — live service dashboard: health-probes each active service (server-side,
-  short timeout) and shows the shared-brain feed. Rendered per request.
+  short timeout), a write box, and the recent shared-brain feed. Auto-refreshes
+  every ~20s (pauses when the tab is hidden). Rendered per request.
+- `/brain` — full brain browser: search across content/agent/kind, plus the same
+  write box. Auto-refreshes every ~30s.
 - `/api/health` — JSON liveness probe (`{ status: "ok", ... }`). Left open even
   when Basic Auth is on, so Docker/Coolify healthchecks work.
 - `/api/memory` — the shared brain.
-  - `GET /api/memory?limit=20` → recent context entries.
+  - `GET /api/memory?limit=20&q=term` → recent (optionally filtered) entries.
   - `POST /api/memory` `{ "content": "...", "agent"?, "kind"? }` → append an
     entry (201). Agents and n8n workflows write hub context here.
 

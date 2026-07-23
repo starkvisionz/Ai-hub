@@ -1,0 +1,41 @@
+{
+  "name": "Log to shared brain (starter)",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [{ "field": "hours", "hoursInterval": 1 }]
+        }
+      },
+      "id": "schedule-trigger",
+      "name": "Every hour",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [420, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://hub-app:3000/api/memory",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"agent\": \"n8n\",\n  \"kind\": \"heartbeat\",\n  \"content\": \"n8n heartbeat at \" + $now.toISO()\n}",
+        "options": {}
+      },
+      "id": "post-to-brain",
+      "name": "POST /api/memory",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [660, 300]
+    }
+  ],
+  "connections": {
+    "Every hour": {
+      "main": [[{ "node": "POST /api/memory", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {},
+  "meta": {
+    "description": "Starter: writes a heartbeat entry into the hub's shared brain every hour. Duplicate this and swap the trigger/body to log real events (GitHub webhooks, deploy results, etc.)."
+  }
+}
