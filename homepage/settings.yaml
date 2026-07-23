@@ -1,0 +1,12 @@
+# Homepage global settings. Full docs: https://gethomepage.dev/configs/settings/
+title: AI Hub
+theme: dark
+color: slate
+headerStyle: boxed
+layout:
+  Infrastructure:
+    style: row
+    columns: 3
+  Automation & AI:
+    style: row
+    columns: 3

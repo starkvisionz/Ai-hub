@@ -1,0 +1,127 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  compose:
+    name: Validate docker-compose
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate compose config
+        # Dummy values only satisfy the `${VAR:?}` required-variable checks;
+        # no real secrets are needed to validate the file's shape.
+        env:
+          CODE_SERVER_PASSWORD: ci
+          POSTGRES_PASSWORD: ci
+          N8N_ENCRYPTION_KEY: ci
+          RESTIC_REPOSITORY: ci
+          RESTIC_PASSWORD: ci
+        run: docker compose config -q && echo "compose OK"
+
+  app:
+    name: Hub app (typecheck · lint · build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm run build
+
+  db-e2e:
+    name: DB end-to-end (real Postgres)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: ci
+          POSTGRES_DB: aihub
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+      - run: npm ci
+      - run: npm run test:db
+        env:
+          DATABASE_URL: postgres://postgres:ci@localhost:5432/aihub
+
+  http-e2e:
+    name: HTTP integration (real server + Postgres)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: ci
+          POSTGRES_DB: aihub
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+      - run: npm ci
+      - run: npm run build
+      - name: Start server and run HTTP tests (open)
+        env:
+          DATABASE_URL: postgres://postgres:ci@localhost:5432/aihub
+          PORT: "3000"
+          BASE_URL: http://localhost:3000
+        run: |
+          node .next/standalone/server.js & echo $! > server.pid
+          for i in $(seq 1 30); do curl -sf http://localhost:3000/api/health && break; sleep 1; done
+          npm run test:http
+          kill "$(cat server.pid)" || true
+
+      - name: Start server and run HTTP tests (auth enabled)
+        env:
+          DATABASE_URL: postgres://postgres:ci@localhost:5432/aihub
+          PORT: "3001"
+          BASE_URL: http://localhost:3001
+          HUB_BASIC_AUTH_USER: admin
+          HUB_BASIC_AUTH_PASSWORD: ci-secret
+          HUB_API_TOKEN: ci-token
+        run: |
+          node .next/standalone/server.js & echo $! > server.pid
+          for i in $(seq 1 30); do curl -sf http://localhost:3001/api/health && break; sleep 1; done
+          npm run test:http
+          kill "$(cat server.pid)" || true

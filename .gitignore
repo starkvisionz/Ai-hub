@@ -1,0 +1,28 @@
+# Secrets — never commit. Only .env.example (names, no values) is tracked.
+.env
+.env.*
+!.env.example
+
+# Node / app builds (for when the hub grows an app)
+node_modules/
+.next/
+dist/
+build/
+*.log
+
+# Editor / OS cruft
+.DS_Store
+.vscode/
+.idea/
+
+# Workspace runtime contents — the tree is tracked via .gitkeep, but the
+# repos/artifacts that agents drop inside it are not.
+workspace/repos/*
+!workspace/repos/.gitkeep
+workspace/scratch/*
+!workspace/scratch/.gitkeep
+workspace/shared/*
+!workspace/shared/.gitkeep
+
+# Local Docker/Coolify state
+*.pid

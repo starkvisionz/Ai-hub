@@ -1,0 +1,26 @@
+# Homepage service tiles. Full docs: https://gethomepage.dev/configs/services/
+# Replace localhost with your Tailscale hostname/IP once deployed. Add `widget:`
+# blocks (with API keys from .env, injected via env) to show live status.
+
+- Infrastructure:
+    - Coolify:
+        icon: coolify.png
+        href: http://localhost:8000
+        description: Control panel — deploy, logs, env, TLS
+    - code-server:
+        icon: code-server.png
+        href: http://localhost:8080
+        description: Browser IDE + terminal (drive Claude Code)
+    - Postgres (brain):
+        icon: postgres.png
+        description: pgvector shared memory store — port 5432
+
+- Automation & AI:
+    - n8n:
+        icon: n8n.png
+        href: http://localhost:5678
+        description: Automation — webhooks, schedules, agent triggers
+    - Ollama / Hermes:
+        icon: ollama.png
+        href: http://localhost:11434
+        description: Local LLM (enable only with a GPU)
