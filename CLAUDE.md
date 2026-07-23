@@ -42,10 +42,18 @@ docker compose logs -f <service>
 
 # Validate compose without starting
 docker compose config -q
+
+# Hub app (Next.js) — lives in ./app
+cd app
+npm install
+npm run dev        # http://localhost:3000
+npm run build      # production build (output: standalone)
+npm run lint
+npm run typecheck  # tsc --noEmit
 ```
 
-> When the hub grows an app (Next.js), add its dev/test/lint commands here so
-> future sessions don't have to rediscover them.
+> `app/` is a Next.js 15 App Router + TypeScript + Tailwind project. Build is
+> verified green. Keep these commands current as the app grows.
 
 ## Guardrails specific to this environment
 

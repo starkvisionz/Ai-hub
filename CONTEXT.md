@@ -76,9 +76,9 @@ Different AI sessions stay coordinated two ways:
 | n8n | Automation: webhooks, schedules, agent triggers | Active |
 | Homepage | YAML-config service dashboard (`./homepage/`) | Active |
 | restic-backup | Off-site encrypted backups (B2/S3) | Active |
+| hub app | Next.js dashboard + `/api/health` (`app/`) | Active (build verified) |
 | Ollama / Hermes | Local LLM | **Off — GPU only** |
 | Forgejo | Self-hosted Git forge | Deferred (Phase 2) |
-| hub app | Next.js dashboard/API | Future |
 
 ## Environment assumptions
 

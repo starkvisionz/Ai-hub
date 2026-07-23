@@ -32,7 +32,16 @@ in `.env`, not committed). Open PR: **#1**.
 6. **Pick a restic backend** (Backblaze B2 vs S3) and create the bucket.
 7. **Decide the first project(s)** the hub coordinates → clone under
    `workspace/repos/`.
-8. *(Later)* Forgejo (if Git sovereignty wanted), then the `hub app` (Next.js).
+8. **Grow the hub app** (`app/`): wire it to the Postgres brain (it already
+   receives `DATABASE_URL`), add live service health tiles, and an auth gate.
+9. *(Later)* Forgejo, if Git sovereignty is wanted.
+
+## Verify locally
+
+```bash
+cd app && npm install && npm run build   # green as of 2026-07-23
+docker compose config -q                 # stack validates
+```
 
 ## In flight
 
@@ -40,6 +49,12 @@ in `.env`, not committed). Open PR: **#1**.
 
 ## Recently done
 
+- **2026-07-23** — Built the **Next.js hub app** (PR #1) in `app/`: Next.js 15
+  App Router + TS + Tailwind, service dashboard + `/api/health`, standalone
+  Dockerfile. `next@15.5.21` (patches CVE-2025-66478). **Build + typecheck +
+  lint verified green** in this session. Enabled the `hub-app` service in
+  `docker-compose.yml` (builds `./app`, healthcheck on `/api/health`). Decision
+  D-0012. Docs synced.
 - **2026-07-23** — Expanded the stack (PR #1): added **n8n**, **Homepage**
   (config in `homepage/`), and a **restic** off-site backup service to
   `docker-compose.yml`; added a GPU-conditional (commented) **Ollama/Hermes**

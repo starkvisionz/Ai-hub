@@ -153,21 +153,30 @@ services:
   #             count: all
   #             capabilities: [gpu]
 
-  # ── Hub app (future): Next.js dashboard / API surface ──────────────────────
-  # Uncomment once the app exists under ./app. Coolify can auto-redeploy this
-  # from Git on push.
-  #
-  # hub-app:
-  #   build: ./app
-  #   container_name: ai-hub-app
-  #   restart: unless-stopped
-  #   environment:
-  #     DATABASE_URL: postgres://${POSTGRES_USER:-aihub}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-aihub}
-  #   depends_on:
-  #     postgres:
-  #       condition: service_healthy
-  #   ports:
-  #     - "127.0.0.1:3000:3000"
+  # ── Hub app: Next.js dashboard / API surface (built from ./app) ────────────
+  # Coolify can auto-redeploy this from Git on push.
+  hub-app:
+    build: ./app
+    container_name: ai-hub-app
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgres://${POSTGRES_USER:-aihub}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-aihub}
+      # Service links shown on the dashboard — override with Tailscale hostnames.
+      SVC_COOLIFY_URL: ${SVC_COOLIFY_URL:-http://localhost:8000}
+      SVC_CODE_SERVER_URL: ${SVC_CODE_SERVER_URL:-http://localhost:8080}
+      SVC_N8N_URL: ${SVC_N8N_URL:-http://localhost:5678}
+      SVC_HOMEPAGE_URL: ${SVC_HOMEPAGE_URL:-http://localhost:3001}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:3000:3000"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/api/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
 
 volumes:
   postgres-data:

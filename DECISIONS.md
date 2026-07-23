@@ -13,6 +13,18 @@ Why:      the reasoning / alternatives rejected
 
 ---
 
+## D-0012 — Hub app: Next.js 15 App Router + TypeScript + Tailwind   (2026-07-23, status: accepted)
+**Context:** The hub needs a web surface (dashboard/API) as its front door.
+**Decision:** Build it in **Next.js 15 (App Router) + TypeScript + Tailwind v3**,
+in `app/`, emitted as a **standalone** Docker image and wired into compose as
+`hub-app`. Pinned `next@15.5.21` (patches CVE-2025-66478).
+**Why:** App Router + standalone output gives a tiny, Coolify-friendly image with
+Git auto-deploy; TS + Tailwind are the team-standard, low-friction stack. Tailwind
+v3 (not v4) for a well-trodden, reliable build. Build verified green here.
+**Note:** Two transitive advisories remain in Next's optional `sharp`/`postcss`
+deps; `audit fix --force` would downgrade Next to 9.3.3 (breaking), so left as-is.
+`sharp` is only used by `next/image` optimization, which this app doesn't use.
+
 ## D-0011 — Nextcloud not adopted; use workspace volume + MinIO if needed   (2026-07-23, status: accepted)
 **Context:** Nextcloud was floated for shared files.
 **Decision:** Skip Nextcloud. Use the shared `workspace/` volume for agent/human
@@ -108,4 +120,4 @@ docs and reality stay together.
 
 ---
 
-_Add the next decision above this line as `D-0012`._
+_Add the next decision above this line as `D-0013`._
