@@ -13,7 +13,9 @@ npm run dev        # http://localhost:3000
 ```
 
 Other scripts: `npm run build`, `npm run start`, `npm run lint`,
-`npm run typecheck`.
+`npm run typecheck`, and `npm run test:db` (end-to-end brain test against a real
+Postgres — set `DATABASE_URL` first; runs automatically in CI against a Postgres
+service).
 
 ## Configuration
 

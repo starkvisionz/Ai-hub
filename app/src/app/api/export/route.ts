@@ -18,7 +18,7 @@ function toCsv(rows: MemoryEntry[]): string {
   const lines = rows.map((r) =>
     [
       String(r.id),
-      r.created_at,
+      new Date(r.created_at).toISOString(),
       csvField(r.agent),
       csvField(r.kind),
       csvField(r.content),

@@ -1,4 +1,9 @@
-import { Pool, type QueryResult, type QueryResultRow } from "pg";
+import { Pool, types, type QueryResult, type QueryResultRow } from "pg";
+
+// pg returns int8 (BIGSERIAL) as a string by default. Our ids fit comfortably in
+// a JS number, and MemoryEntry.id is typed `number`, so parse int8 → number to
+// keep runtime and types consistent (e.g. so id guards work on returned rows).
+types.setTypeParser(20, (val) => (val === null ? null : parseInt(val, 10)));
 
 // Lazily-created connection pool to the shared "brain" Postgres. Everything here
 // degrades gracefully: if DATABASE_URL is unset or the DB is unreachable, calls

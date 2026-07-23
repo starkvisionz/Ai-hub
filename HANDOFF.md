@@ -51,6 +51,13 @@ docker compose config -q                 # stack validates
 
 ## Recently done
 
+- **2026-07-23** — Added a **live-DB E2E test** (PR #1) and **fixed a real bug**
+  it caught: `pg` returned BIGSERIAL ids as strings, so edit/delete/pin were
+  silent no-ops (`Number.isInteger` guard). Fixed via an int8→number type parser
+  in `db.ts`; also ISO-formatted CSV timestamps. New `app/test/brain.e2e.ts`
+  (exercises the real `memory.ts` fns) + `npm run test:db`; new CI job `db-e2e`
+  runs it against a Postgres service. **Verified green against local Postgres 16.**
+  Decision D-0015.
 - **2026-07-23** — Added **activity sparkline + copy-as-markdown** (PR #1):
   `/api/stats` now returns `pinned` count + `perDay` (last 14 days); dashboard
   shows a pure-SVG 14-day activity **sparkline** and a pinned tile; each `/brain`

@@ -13,6 +13,20 @@ Why:      the reasoning / alternatives rejected
 
 ---
 
+## D-0015 — Live-DB E2E test in CI; parse int8 ids as numbers   (2026-07-23, status: accepted)
+**Context:** All brain DB paths had only been exercised against the graceful
+no-DB branches (no Docker in the dev sandbox). Running the real code against a
+local Postgres surfaced a bug: `pg` returns BIGSERIAL ids as **strings**, so the
+`Number.isInteger(id)` guards in `editMemory`/`deleteMemory` rejected them —
+edit, delete, and pin were silently no-ops.
+**Decision:** (1) In `db.ts`, register an int8 (OID 20) type parser → JS number,
+aligning runtime with the `number` type. (2) Add `app/test/brain.e2e.ts`
+(exercises the real `memory.ts` functions) + a `test:db` script, and a CI job
+`db-e2e` that runs it against a Postgres service on every PR.
+**Why:** Closes the one verification gap; the test caught a real regression on
+first run and now guards against similar ones. int8→number is safe (ids fit well
+within `Number.MAX_SAFE_INTEGER`).
+
 ## D-0014 — CI on GitHub Actions: validate compose + typecheck/lint/build the app   (2026-07-23, status: accepted)
 **Context:** The repo now has real code (compose stack + Next.js app) that can
 break silently on a PR.
@@ -141,4 +155,4 @@ docs and reality stay together.
 
 ---
 
-_Add the next decision above this line as `D-0015`._
+_Add the next decision above this line as `D-0016`._
