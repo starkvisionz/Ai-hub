@@ -51,6 +51,11 @@ docker compose config -q                 # stack validates
 
 ## Recently done
 
+- **2026-07-23** — Added **activity sparkline + copy-as-markdown** (PR #1):
+  `/api/stats` now returns `pinned` count + `perDay` (last 14 days); dashboard
+  shows a pure-SVG 14-day activity **sparkline** and a pinned tile; each `/brain`
+  entry has a **copy-as-markdown** action. Build + typecheck + lint green;
+  dashboard/brain render verified (stats stay silent without a DB).
 - **2026-07-23** — Added **pin/star + feed** (PR #1): `pinned` column (additive
   migration in `ensureSchema` + `db/schema.sql`); pinned entries **float to top**;
   inline **pin toggle** and a **pinned-only** filter on `/brain`;

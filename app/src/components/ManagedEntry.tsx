@@ -12,6 +12,18 @@ export function ManagedEntry({ entry }: { entry: MemoryEntry }) {
   const [content, setContent] = useState(entry.content);
   const [kind, setKind] = useState(entry.kind);
   const [busy, setBusy] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  async function copyMarkdown() {
+    const md = `- **${entry.agent}** _(${entry.kind})_: ${entry.content}`;
+    try {
+      await navigator.clipboard.writeText(md);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1200);
+    } catch {
+      // clipboard unavailable (e.g. non-secure context) — ignore
+    }
+  }
 
   async function togglePin() {
     if (busy) return;
@@ -112,6 +124,15 @@ export function ManagedEntry({ entry }: { entry: MemoryEntry }) {
               title={entry.pinned ? "Unpin entry" : "Pin entry"}
             >
               {entry.pinned ? "★" : "☆"}
+            </button>
+            <button
+              type="button"
+              onClick={copyMarkdown}
+              className="rounded px-1 text-slate-300 hover:text-slate-600 dark:text-slate-600 dark:hover:text-slate-300"
+              aria-label="Copy as markdown"
+              title="Copy as markdown"
+            >
+              {copied ? "copied" : "copy"}
             </button>
             <button
               type="button"

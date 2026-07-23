@@ -1,5 +1,6 @@
 import { memoryStats } from "@/lib/memory";
 import { timeAgo } from "@/lib/time";
+import { Sparkline } from "./Sparkline";
 
 // Compact stat tiles + a kind-distribution bar chart summarizing the shared
 // brain. Silent (renders nothing) when there's no database, so the dashboard
@@ -10,6 +11,7 @@ export async function StatRow() {
 
   const tiles: { label: string; value: string }[] = [
     { label: "brain entries", value: String(stats.total) },
+    { label: "pinned", value: String(stats.pinned) },
     { label: "kinds", value: String(stats.byKind.length) },
     {
       label: "last activity",
@@ -21,7 +23,7 @@ export async function StatRow() {
 
   return (
     <div className="mb-10">
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         {tiles.map((t) => (
           <div
             key={t.label}
@@ -34,6 +36,12 @@ export async function StatRow() {
           </div>
         ))}
       </div>
+
+      {stats.total > 0 && (
+        <div className="mt-4">
+          <Sparkline perDay={stats.perDay} />
+        </div>
+      )}
 
       {stats.byKind.length > 0 && (
         <div className="mt-4 rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">

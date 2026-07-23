@@ -48,8 +48,9 @@ renders. Set these in Coolify (point URLs at your Tailscale hostname):
   - `PATCH /api/memory?id=123` `{ "content"?, "kind"?, "pinned"? }` → update one
     entry (content/kind/pin state).
   - `DELETE /api/memory?id=123` → remove one entry.
-- `/api/stats` — brain counts: `{ total, byKind[], byAgent[], lastAt }` (feeds the
-  dashboard stat tiles + kind chart, and the `/brain` filter chips).
+- `/api/stats` — brain counts: `{ total, pinned, byKind[], byAgent[], perDay[],
+  lastAt }` (feeds the dashboard stat tiles, 14-day activity sparkline, kind
+  chart, and the `/brain` filter chips).
 - `/api/export?format=json|csv&q=&kind=&agent=` → download the (filtered) brain
   as JSON or CSV (with a `Content-Disposition` attachment).
 - `/api/feed?format=json|rss&kind=&agent=` → recent context as a subscribable

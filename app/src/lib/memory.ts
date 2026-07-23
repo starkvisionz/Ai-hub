@@ -162,17 +162,34 @@ export async function deleteMemory(id: number): Promise<boolean> {
 
 export type MemoryStats = {
   total: number;
+  pinned: number;
   byKind: { kind: string; count: number }[];
   byAgent: { agent: string; count: number }[];
+  perDay: { day: string; count: number }[];
   lastAt: string | null;
 };
 
 export async function memoryStats(): Promise<MemoryStats | null> {
   if (!(await ensureSchema())) return null;
-  const totalRes = await query<{ total: string; last_at: string | null }>(
-    `SELECT count(*)::text AS total, max(created_at) AS last_at FROM hub_memory`,
+  const totalRes = await query<{
+    total: string;
+    pinned: string;
+    last_at: string | null;
+  }>(
+    `SELECT count(*)::text AS total,
+            count(*) FILTER (WHERE pinned)::text AS pinned,
+            max(created_at) AS last_at
+       FROM hub_memory`,
   );
   if (totalRes === null) return null;
+  const dayRes = await query<{ day: string; count: string }>(
+    `SELECT to_char(created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD') AS day,
+            count(*)::text AS count
+       FROM hub_memory
+      WHERE created_at >= now() - interval '13 days'
+      GROUP BY day
+      ORDER BY day`,
+  );
   const kindRes = await query<{ kind: string; count: string }>(
     `SELECT kind, count(*)::text AS count
        FROM hub_memory
@@ -189,6 +206,7 @@ export async function memoryStats(): Promise<MemoryStats | null> {
   );
   return {
     total: Number(totalRes.rows[0]?.total ?? 0),
+    pinned: Number(totalRes.rows[0]?.pinned ?? 0),
     lastAt: totalRes.rows[0]?.last_at ?? null,
     byKind: (kindRes?.rows ?? []).map((k) => ({
       kind: k.kind,
@@ -197,6 +215,10 @@ export async function memoryStats(): Promise<MemoryStats | null> {
     byAgent: (agentRes?.rows ?? []).map((a) => ({
       agent: a.agent,
       count: Number(a.count),
+    })),
+    perDay: (dayRes?.rows ?? []).map((d) => ({
+      day: d.day,
+      count: Number(d.count),
     })),
   };
 }
