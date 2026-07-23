@@ -46,7 +46,8 @@ facts and re-litigates the same decisions. This hub keeps the durable context
 | [`homepage/`](./homepage/) | Homepage dashboard config (YAML) tiling the hub services. |
 | [`app/`](./app/) | The hub web app — Next.js 15 (App Router, TS, Tailwind): live dashboard, shared-brain browser (`/brain`), and `/api/*` (health, memory, stats). Build verified. |
 | [`n8n/`](./n8n/) | Importable n8n workflows (starter logs events into the shared brain). |
-| [`.github/workflows/ci.yml`](./.github/workflows/ci.yml) | CI: validates compose + typechecks/lints/builds the app on every PR. |
+| [`.github/workflows/ci.yml`](./.github/workflows/ci.yml) | CI: validates compose + typechecks/lints/builds the app + real-Postgres DB & HTTP E2E on every PR. |
+| [`.github/workflows/deploy.yml`](./.github/workflows/deploy.yml) · [`DEPLOY.md`](./DEPLOY.md) | CI-gated deploy: after CI is green on `main`, triggers a Coolify redeploy over Tailscale (`scripts/deploy.sh`). No-ops until secrets are set. |
 | [`workspace/`](./workspace/) | Shared filesystem mounted into services (`repos/`, `shared/`, `scratch/`). |
 
 ### Service stack at a glance

@@ -5,6 +5,16 @@
 > Durable facts live in [`CONTEXT.md`](./CONTEXT.md); rationale in
 > [`DECISIONS.md`](./DECISIONS.md).
 
+## Recently done (post-merge)
+
+- **2026-07-23** — **PR #1 merged** to `main` (the hub foundation). Started
+  **deploy automation** on a fresh branch: `Deploy` workflow
+  (`.github/workflows/deploy.yml`) that runs after CI is green on `main` (or
+  manual), joins Tailscale, and calls Coolify's `/api/v1/deploy` via portable
+  `scripts/deploy.sh`; no-ops until secrets are set. `DEPLOY.md` documents the
+  Coolify-native and CI-gated paths + required secrets. Verified script paths vs.
+  a mock endpoint; YAML validates. Decision D-0019.
+
 ## Current status
 
 **Phase 0 — Foundation.** Context docs + full Coolify/Docker stack **defined**

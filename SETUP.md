@@ -108,6 +108,8 @@ Inside code-server's terminal (or any Claude Code session on the host):
 
 - **App/service change:** push to Git → Coolify auto-redeploys (if Git-connected),
   or `docker compose pull && docker compose up -d` for image bumps.
+- **Automated deploys:** see [`DEPLOY.md`](./DEPLOY.md) — either Coolify-native
+  auto-deploy, or the CI-gated `Deploy` workflow (deploys only after CI is green).
 - **Backups:** enable Coolify's scheduled backups on the Postgres resource.
 - **Logs:** Coolify tile → Logs, or `docker compose logs -f <service>`.
 
