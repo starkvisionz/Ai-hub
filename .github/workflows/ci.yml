@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  compose:
+    name: Validate docker-compose
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate compose config
+        # Dummy values only satisfy the `${VAR:?}` required-variable checks;
+        # no real secrets are needed to validate the file's shape.
+        env:
+          CODE_SERVER_PASSWORD: ci
+          POSTGRES_PASSWORD: ci
+          N8N_ENCRYPTION_KEY: ci
+          RESTIC_REPOSITORY: ci
+          RESTIC_PASSWORD: ci
+        run: docker compose config -q && echo "compose OK"
+
+  app:
+    name: Hub app (typecheck · lint · build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm run build

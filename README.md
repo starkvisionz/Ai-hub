@@ -44,7 +44,9 @@ facts and re-litigates the same decisions. This hub keeps the durable context
 | [`SETUP.md`](./SETUP.md) | Ubuntu VPS → Tailscale → Coolify → running stack, step by step. |
 | [`scripts/bootstrap-vps.sh`](./scripts/bootstrap-vps.sh) | One-shot host bootstrap (base + Tailscale + Coolify). Run **on the VPS**. |
 | [`homepage/`](./homepage/) | Homepage dashboard config (YAML) tiling the hub services. |
-| [`app/`](./app/) | The hub web app — Next.js 15 (App Router, TS, Tailwind) dashboard + `/api/health`. Build verified. |
+| [`app/`](./app/) | The hub web app — Next.js 15 (App Router, TS, Tailwind): live dashboard, shared-brain browser (`/brain`), and `/api/*` (health, memory, stats). Build verified. |
+| [`n8n/`](./n8n/) | Importable n8n workflows (starter logs events into the shared brain). |
+| [`.github/workflows/ci.yml`](./.github/workflows/ci.yml) | CI: validates compose + typechecks/lints/builds the app on every PR. |
 | [`workspace/`](./workspace/) | Shared filesystem mounted into services (`repos/`, `shared/`, `scratch/`). |
 
 ### Service stack at a glance

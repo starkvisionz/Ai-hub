@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { isDbConfigured } from "@/lib/db";
-import { addMemory, recentMemory } from "@/lib/memory";
+import { addMemory, deleteMemory, recentMemory } from "@/lib/memory";
 
 export const dynamic = "force-dynamic";
 
@@ -44,4 +44,21 @@ export async function POST(request: Request) {
     );
   }
   return NextResponse.json({ entry }, { status: 201 });
+}
+
+// DELETE /api/memory?id=123 — remove one entry.
+export async function DELETE(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const id = Number(searchParams.get("id"));
+  if (!Number.isInteger(id) || id <= 0) {
+    return NextResponse.json({ error: "invalid_id" }, { status: 400 });
+  }
+  const ok = await deleteMemory(id);
+  if (!ok) {
+    return NextResponse.json(
+      { error: "not_deleted", reason: isDbConfigured() ? "not_found_or_unreachable" : "db_not_configured" },
+      { status: isDbConfigured() ? 404 : 503 },
+    );
+  }
+  return NextResponse.json({ deleted: id });
 }

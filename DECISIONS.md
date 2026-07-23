@@ -13,6 +13,15 @@ Why:      the reasoning / alternatives rejected
 
 ---
 
+## D-0014 — CI on GitHub Actions: validate compose + typecheck/lint/build the app   (2026-07-23, status: accepted)
+**Context:** The repo now has real code (compose stack + Next.js app) that can
+break silently on a PR.
+**Decision:** Add `.github/workflows/ci.yml` with two jobs — `compose`
+(`docker compose config -q` with dummy required-var values) and `app`
+(`npm ci` → typecheck → lint → build on Node 22). Runs on PRs and pushes to main.
+**Why:** Cheap, fast guardrail that keeps every PR green without manual checks.
+Dummy env only satisfies `${VAR:?}` checks; no secrets involved.
+
 ## D-0013 — Shared brain via Postgres `hub_memory` + graceful degradation + optional Basic Auth   (2026-07-23, status: accepted)
 **Context:** The hub app needs to read/write shared context and show live service
 state, without hard-failing when the DB or services are down.
@@ -132,4 +141,4 @@ docs and reality stay together.
 
 ---
 
-_Add the next decision above this line as `D-0014`._
+_Add the next decision above this line as `D-0015`._

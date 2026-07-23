@@ -1,5 +1,6 @@
 import type { MemoryEntry } from "@/lib/memory";
 import { timeAgo } from "@/lib/time";
+import { DeleteEntryButton } from "./DeleteEntryButton";
 
 // Presentational list of shared-brain entries. `entries === null` means the DB
 // was unreachable / unconfigured; the caller decides the surrounding chrome.
@@ -7,10 +8,12 @@ export function MemoryList({
   entries,
   dbConfigured,
   emptyHint,
+  deletable = false,
 }: {
   entries: MemoryEntry[] | null;
   dbConfigured: boolean;
   emptyHint?: string;
+  deletable?: boolean;
 }) {
   if (entries === null) {
     return (
@@ -45,6 +48,7 @@ export function MemoryList({
               {e.kind}
             </span>
             <span className="ml-auto">{timeAgo(e.created_at)}</span>
+            {deletable && <DeleteEntryButton id={e.id} />}
           </div>
           <p className="mt-1 whitespace-pre-wrap text-sm text-slate-700 dark:text-slate-300">
             {e.content}

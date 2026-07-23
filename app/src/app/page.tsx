@@ -1,5 +1,6 @@
 import { ServiceCard } from "@/components/ServiceCard";
 import { MemoryPanel } from "@/components/MemoryPanel";
+import { StatRow } from "@/components/StatRow";
 import { LiveRefresh } from "@/components/LiveRefresh";
 import { services, type HubService } from "@/lib/services";
 import { checkAll } from "@/lib/health";
@@ -37,6 +38,8 @@ export default async function Home() {
           primary model · access gated behind Tailscale.
         </p>
       </header>
+
+      <StatRow />
 
       {groups.map((group) => (
         <section key={group} className="mb-10">

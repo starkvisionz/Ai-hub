@@ -36,31 +36,74 @@ export async function ensureSchema(): Promise<boolean> {
 export async function recentMemory(
   limit = 20,
   q?: string,
+  kind?: string,
 ): Promise<MemoryEntry[] | null> {
   if (!(await ensureSchema())) return null;
   const safeLimit = Math.min(Math.max(1, Math.floor(limit)), 100);
   const term = q?.trim();
+  const kindFilter = kind?.trim();
+
+  const conditions: string[] = [];
+  const params: unknown[] = [];
   if (term) {
-    const r = await query<MemoryEntry>(
-      `SELECT id, agent, kind, content, created_at
-         FROM hub_memory
-        WHERE content ILIKE '%' || $1 || '%'
-           OR agent   ILIKE '%' || $1 || '%'
-           OR kind    ILIKE '%' || $1 || '%'
-        ORDER BY created_at DESC
-        LIMIT $2`,
-      [term, safeLimit],
+    params.push(term);
+    const p = `$${params.length}`;
+    conditions.push(
+      `(content ILIKE '%' || ${p} || '%' OR agent ILIKE '%' || ${p} || '%' OR kind ILIKE '%' || ${p} || '%')`,
     );
-    return r ? r.rows : null;
   }
+  if (kindFilter) {
+    params.push(kindFilter);
+    conditions.push(`kind = $${params.length}`);
+  }
+  params.push(safeLimit);
+  const where = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
+
   const r = await query<MemoryEntry>(
     `SELECT id, agent, kind, content, created_at
        FROM hub_memory
+      ${where}
       ORDER BY created_at DESC
-      LIMIT $1`,
-    [safeLimit],
+      LIMIT $${params.length}`,
+    params,
   );
   return r ? r.rows : null;
+}
+
+export async function deleteMemory(id: number): Promise<boolean> {
+  if (!Number.isInteger(id) || id <= 0) return false;
+  if (!(await ensureSchema())) return false;
+  const r = await query(`DELETE FROM hub_memory WHERE id = $1`, [id]);
+  return r ? r.rowCount === 1 : false;
+}
+
+export type MemoryStats = {
+  total: number;
+  byKind: { kind: string; count: number }[];
+  lastAt: string | null;
+};
+
+export async function memoryStats(): Promise<MemoryStats | null> {
+  if (!(await ensureSchema())) return null;
+  const totalRes = await query<{ total: string; last_at: string | null }>(
+    `SELECT count(*)::text AS total, max(created_at) AS last_at FROM hub_memory`,
+  );
+  if (totalRes === null) return null;
+  const kindRes = await query<{ kind: string; count: string }>(
+    `SELECT kind, count(*)::text AS count
+       FROM hub_memory
+      GROUP BY kind
+      ORDER BY count(*) DESC
+      LIMIT 12`,
+  );
+  return {
+    total: Number(totalRes.rows[0]?.total ?? 0),
+    lastAt: totalRes.rows[0]?.last_at ?? null,
+    byKind: (kindRes?.rows ?? []).map((k) => ({
+      kind: k.kind,
+      count: Number(k.count),
+    })),
+  };
 }
 
 export async function addMemory(input: {

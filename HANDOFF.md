@@ -33,11 +33,10 @@ in `.env`, not committed). Open PR: **#1**.
 7. **Decide the first project(s)** the hub coordinates → clone under
    `workspace/repos/`.
 8. **Hub app next** (`app/`): brain + live health + Basic Auth + write box +
-   `/brain` search + auto-refresh + n8n starter are done. Next candidates —
-   import & activate the n8n workflow against the real brain; add pagination to
-   `/brain`; delete/edit entries; per-kind filters; a simple metrics tile.
-9. **CI**: add `.github/workflows` to lint compose + typecheck/build the app on PRs.
-10. *(Later)* Forgejo, if Git sovereignty is wanted.
+   `/brain` search/kind-filter/delete + stat tiles + auto-refresh + n8n starter +
+   CI are done. Next candidates — pagination on `/brain`; edit entries; wire n8n
+   to the live brain; charts on the stat tiles; entity/relations view.
+9. *(Later)* Forgejo, if Git sovereignty is wanted.
 
 ## Verify locally
 
@@ -52,6 +51,12 @@ docker compose config -q                 # stack validates
 
 ## Recently done
 
+- **2026-07-23** — Added **manage + insight + CI** (PR #1): per-entry **delete**
+  (`DELETE /api/memory?id=`), **kind filter chips** with counts + exact `kind`
+  filter on `/brain`, **stat tiles** on the dashboard (`/api/stats`:
+  total/kinds/last activity). Added **GitHub Actions CI**
+  (`.github/workflows/ci.yml`): validates compose + typecheck/lint/build the app
+  on every PR. Decision D-0014. All green; routes + DELETE + stats smoke-tested.
 - **2026-07-23** — Grew the app's **interactive layer** (PR #1): a **write box**
   (`MemoryComposer`) posting to `/api/memory`; a **`/brain`** browser with
   full-text **search** (`/api/memory?q=`); **auto-refresh** (`LiveRefresh`) on
