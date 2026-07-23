@@ -7,13 +7,19 @@ How to go from a bare VPS to a running, Coolify-managed hub stack. Target OS is
 > them behind **Tailscale** or an **SSH tunnel** — never exposed naked to the
 > public internet. See [§Security](#security).
 
+> **This hub's target: Hostinger KVM2** (≈2 vCPU / 8 GB RAM / ~100 GB NVMe,
+> Ubuntu). Hostinger-specific shortcuts are called out in
+> [§Hostinger notes](#hostinger-notes) — most importantly, you can install the
+> VPS from Hostinger's **one-click Coolify template**, which skips step 3.
+
 ---
 
 ## 0. Prerequisites
 
 - A VPS with **Ubuntu LTS**, ≥ 2 vCPU / 4 GB RAM (8 GB comfortable), ≥ 40 GB disk.
+  (Hostinger KVM2 fits — see [§Hostinger notes](#hostinger-notes).)
 - A domain (optional but recommended for TLS on public-facing app services).
-- SSH access as a sudo-capable user.
+- SSH access as a sudo-capable user (or Hostinger's hPanel **Browser terminal**).
 - Locally: this repo, and the secret values for `.env` (see `.env.example`).
 
 ## 1. Base the server
@@ -46,6 +52,9 @@ curl -fsSL https://cdn.coollabs.io/coolify/install.sh | sudo bash
 
 When it finishes, open the dashboard at `http://<tailscale-ip>:8000` and create
 the admin account. (Debian works too; the installer handles both.)
+
+> **On Hostinger you can skip this step** by installing the VPS from the
+> **Coolify template** — see [§Hostinger notes](#hostinger-notes).
 
 > Prefer plain Docker without Coolify? Skip to [§Appendix: Compose-only](#appendix-compose-only).
 
@@ -103,6 +112,27 @@ Inside code-server's terminal (or any Claude Code session on the host):
 - **Logs:** Coolify tile → Logs, or `docker compose logs -f <service>`.
 
 ---
+
+## Hostinger notes
+
+This hub targets a **Hostinger KVM2** VPS. Hostinger-specific tips:
+
+- **Coolify one-click template.** In hPanel → your VPS → **Operating System**
+  (OS & panel), pick the **Coolify** template and (re)install. This provisions
+  Ubuntu with Coolify already installed — **skip step 3**. Then just do the base
+  hardening + Tailscale (steps 1–2) and go straight to importing the stack
+  (step 4). Reinstalling wipes the disk, so do this before you have data.
+- **Browser terminal.** hPanel exposes a browser terminal for the VPS, so you can
+  run `scripts/bootstrap-vps.sh` and the setup commands without a local SSH
+  client.
+- **Firewall.** Use hPanel's **Firewall** to allow only SSH (and Tailscale's UDP
+  41641 if needed); do **not** open `8000`/`8080`/`5432` to the internet. This
+  complements Tailscale — reach the panels over the tailnet, not public ports.
+- **Sizing.** KVM2 is ~8 GB RAM. Coolify runs its own Postgres/Redis; watch total
+  memory with the full stack up (see `CONTEXT.md` → resource budget). Keep
+  Ollama/Hermes off (no GPU on KVM2).
+- **Snapshots.** Hostinger offers VPS snapshots/backups in hPanel — a cheap safety
+  net in addition to the Restic off-site backups this stack ships.
 
 ## Security
 

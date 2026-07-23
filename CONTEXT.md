@@ -82,8 +82,11 @@ Different AI sessions stay coordinated two ways:
 
 ## Environment assumptions
 
-- **VPS OS:** Ubuntu (LTS). Adjust in [`SETUP.md`](./SETUP.md) if different.
-- **VPS plan:** **KVM2** — CPU-only KVM VPS (~2 vCPU / 8 GB RAM, no GPU).
+- **VPS provider/plan:** **Hostinger KVM2** — CPU-only KVM VPS (~2 vCPU / 8 GB
+  RAM / ~100 GB NVMe, no GPU). Hostinger offers a one-click **Coolify** OS
+  template and an hPanel browser terminal + firewall — see
+  [`SETUP.md`](./SETUP.md) §Hostinger notes.
+- **VPS OS:** Ubuntu (LTS).
 - **VPS host:** stored as `VPS_HOST` in `.env` (git-ignored) — not committed, to
   avoid advertising the box publicly.
 - **Control panel:** Coolify (self-hosted, Docker-based).
@@ -101,7 +104,7 @@ code-server, Homepage, and restic. Fits for light use, but watch memory:
 ## Open unknowns (fill in as decided)
 
 - [x] **GPU?** — No. KVM2 is CPU-only → Hermes/Ollama stays disabled.
-- [x] VPS provider/specs — KVM2, CPU-only; host IP kept in `.env`.
+- [x] VPS provider/specs — **Hostinger KVM2**, CPU-only; host IP kept in `.env`.
 - [ ] Domain(s) for services — _TBD_
 - [ ] Restic backend + off-site bucket (B2 vs S3) — _TBD_
 - [ ] Which projects the hub coordinates first — _TBD, list under `workspace/repos/`_
