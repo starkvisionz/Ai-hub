@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
-    "test:db": "tsx test/brain.e2e.ts"
+    "test:db": "tsx test/brain.e2e.ts",
+    "test:http": "node test/http.mjs"
   },
   "dependencies": {
     "next": "15.5.21",

@@ -51,6 +51,11 @@ docker compose config -q                 # stack validates
 
 ## Recently done
 
+- **2026-07-23** — Added **HTTP integration tests** (PR #1): `test/http.mjs`
+  drives the real `/api/*` routes over the network (create/search/pin/link/stats/
+  export/feed/delete + error cases, 17 assertions); new CI job `http-e2e` builds,
+  boots the standalone server against a Postgres service, and runs them. Verified
+  green locally against a real server + Postgres 16. CI now has 4 jobs.
 - **2026-07-23** — Added **ranked full-text search + link counts** (PR #1):
   generated `search` tsvector (GIN-indexed); search now ranks by `ts_rank` (with
   substring fallback) after pinned; list rows carry a `link_count` badge. E2E

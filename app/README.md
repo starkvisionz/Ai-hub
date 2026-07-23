@@ -13,9 +13,10 @@ npm run dev        # http://localhost:3000
 ```
 
 Other scripts: `npm run build`, `npm run start`, `npm run lint`,
-`npm run typecheck`, and `npm run test:db` (end-to-end brain test against a real
-Postgres — set `DATABASE_URL` first; runs automatically in CI against a Postgres
-service).
+`npm run typecheck`. Tests (both run in CI against a real Postgres service):
+- `npm run test:db` — exercises the `memory.ts` lib directly (set `DATABASE_URL`).
+- `npm run test:http` — drives the `/api/*` routes over HTTP against a running
+  server (set `BASE_URL`, default `http://localhost:3000`).
 
 ## Configuration
 
