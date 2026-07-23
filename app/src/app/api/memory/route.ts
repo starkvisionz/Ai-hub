@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { isDbConfigured } from "@/lib/db";
-import { addMemory, deleteMemory, recentMemory } from "@/lib/memory";
+import { addMemory, deleteMemory, editMemory, recentMemory } from "@/lib/memory";
 
 export const dynamic = "force-dynamic";
 
@@ -8,8 +8,15 @@ export const dynamic = "force-dynamic";
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const limit = Number(searchParams.get("limit") ?? "20");
+  const offset = Number(searchParams.get("offset") ?? "0");
   const q = searchParams.get("q") ?? undefined;
-  const rows = await recentMemory(Number.isFinite(limit) ? limit : 20, q);
+  const kind = searchParams.get("kind") ?? undefined;
+  const rows = await recentMemory({
+    limit: Number.isFinite(limit) ? limit : 20,
+    offset: Number.isFinite(offset) ? offset : 0,
+    q,
+    kind,
+  });
   if (rows === null) {
     return NextResponse.json(
       { available: false, reason: isDbConfigured() ? "db_unreachable" : "db_not_configured", entries: [] },
@@ -44,6 +51,33 @@ export async function POST(request: Request) {
     );
   }
   return NextResponse.json({ entry }, { status: 201 });
+}
+
+// PATCH /api/memory?id=123 — update content and/or kind. Body: { content?, kind? }.
+export async function PATCH(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const id = Number(searchParams.get("id"));
+  if (!Number.isInteger(id) || id <= 0) {
+    return NextResponse.json({ error: "invalid_id" }, { status: 400 });
+  }
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: "invalid_json" }, { status: 400 });
+  }
+  const { content, kind } = (body ?? {}) as Record<string, unknown>;
+  const entry = await editMemory(id, {
+    content: typeof content === "string" ? content : undefined,
+    kind: typeof kind === "string" ? kind : undefined,
+  });
+  if (!entry) {
+    return NextResponse.json(
+      { error: "not_updated", reason: isDbConfigured() ? "not_found_or_no_fields" : "db_not_configured" },
+      { status: isDbConfigured() ? 400 : 503 },
+    );
+  }
+  return NextResponse.json({ entry });
 }
 
 // DELETE /api/memory?id=123 — remove one entry.

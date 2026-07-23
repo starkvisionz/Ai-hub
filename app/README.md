@@ -36,17 +36,18 @@ renders. Set these in Coolify (point URLs at your Tailscale hostname):
   short timeout), a write box, and the recent shared-brain feed. Auto-refreshes
   every ~20s (pauses when the tab is hidden). Rendered per request.
 - `/brain` — full brain browser: search across content/agent/kind, **kind filter
-  chips** (with counts), **per-entry delete**, plus the write box. Auto-refreshes
-  every ~30s.
+  chips** (with counts), **pagination**, **inline edit + delete** per entry, plus
+  the write box. Auto-refreshes every ~30s.
 - `/api/health` — JSON liveness probe (`{ status: "ok", ... }`). Left open even
   when Basic Auth is on, so Docker/Coolify healthchecks work.
 - `/api/memory` — the shared brain.
-  - `GET /api/memory?limit=20&q=term&kind=note` → recent (optionally filtered)
-    entries.
+  - `GET /api/memory?limit=20&offset=0&q=term&kind=note` → recent (optionally
+    filtered/paged) entries.
   - `POST /api/memory` `{ "content": "...", "agent"?, "kind"? }` → append (201).
+  - `PATCH /api/memory?id=123` `{ "content"?, "kind"? }` → update one entry.
   - `DELETE /api/memory?id=123` → remove one entry.
 - `/api/stats` — brain counts: `{ total, byKind[], lastAt }` (feeds the dashboard
-  stat tiles).
+  stat tiles + kind chart).
 
 ## Shared brain (Postgres)
 

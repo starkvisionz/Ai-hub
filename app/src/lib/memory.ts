@@ -33,15 +33,21 @@ export async function ensureSchema(): Promise<boolean> {
   return true;
 }
 
+export type MemoryQuery = {
+  limit?: number;
+  offset?: number;
+  q?: string;
+  kind?: string;
+};
+
 export async function recentMemory(
-  limit = 20,
-  q?: string,
-  kind?: string,
+  opts: MemoryQuery = {},
 ): Promise<MemoryEntry[] | null> {
   if (!(await ensureSchema())) return null;
-  const safeLimit = Math.min(Math.max(1, Math.floor(limit)), 100);
-  const term = q?.trim();
-  const kindFilter = kind?.trim();
+  const safeLimit = Math.min(Math.max(1, Math.floor(opts.limit ?? 20)), 101);
+  const safeOffset = Math.max(0, Math.floor(opts.offset ?? 0));
+  const term = opts.q?.trim();
+  const kindFilter = opts.kind?.trim();
 
   const conditions: string[] = [];
   const params: unknown[] = [];
@@ -56,18 +62,48 @@ export async function recentMemory(
     params.push(kindFilter);
     conditions.push(`kind = $${params.length}`);
   }
-  params.push(safeLimit);
   const where = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
+  params.push(safeLimit);
+  const limitP = `$${params.length}`;
+  params.push(safeOffset);
+  const offsetP = `$${params.length}`;
 
   const r = await query<MemoryEntry>(
     `SELECT id, agent, kind, content, created_at
        FROM hub_memory
       ${where}
       ORDER BY created_at DESC
-      LIMIT $${params.length}`,
+      LIMIT ${limitP} OFFSET ${offsetP}`,
     params,
   );
   return r ? r.rows : null;
+}
+
+export async function editMemory(
+  id: number,
+  patch: { content?: string; kind?: string },
+): Promise<MemoryEntry | null> {
+  if (!Number.isInteger(id) || id <= 0) return null;
+  if (!(await ensureSchema())) return null;
+  const sets: string[] = [];
+  const params: unknown[] = [];
+  if (typeof patch.content === "string" && patch.content.trim()) {
+    params.push(patch.content.trim().slice(0, 8000));
+    sets.push(`content = $${params.length}`);
+  }
+  if (typeof patch.kind === "string" && patch.kind.trim()) {
+    params.push(patch.kind.trim().slice(0, 60));
+    sets.push(`kind = $${params.length}`);
+  }
+  if (sets.length === 0) return null;
+  params.push(id);
+  const r = await query<MemoryEntry>(
+    `UPDATE hub_memory SET ${sets.join(", ")}
+      WHERE id = $${params.length}
+      RETURNING id, agent, kind, content, created_at`,
+    params,
+  );
+  return r && r.rows[0] ? r.rows[0] : null;
 }
 
 export async function deleteMemory(id: number): Promise<boolean> {

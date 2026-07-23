@@ -1,0 +1,57 @@
+{
+  "name": "Webhook to shared brain (starter)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "hub-brain",
+        "options": {}
+      },
+      "id": "webhook-in",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [420, 300],
+      "webhookId": "hub-brain"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://hub-app:3000/api/memory",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"agent\": ($json.body && $json.body.agent) || \"webhook\",\n  \"kind\": ($json.body && $json.body.kind) || \"event\",\n  \"content\": ($json.body && $json.body.content) || JSON.stringify($json.body)\n}",
+        "options": {}
+      },
+      "id": "post-to-brain",
+      "name": "POST /api/memory",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [660, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"ok\": true\n}",
+        "options": {}
+      },
+      "id": "respond",
+      "name": "Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [900, 300]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [[{ "node": "POST /api/memory", "type": "main", "index": 0 }]]
+    },
+    "POST /api/memory": {
+      "main": [[{ "node": "Respond", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {},
+  "meta": {
+    "description": "Starter: exposes an n8n webhook (POST .../webhook/hub-brain) that forwards { agent, kind, content } into the hub's shared brain. Point GitHub/monitoring/other webhooks at it to funnel external events into hub context."
+  }
+}

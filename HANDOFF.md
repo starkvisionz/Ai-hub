@@ -32,10 +32,10 @@ in `.env`, not committed). Open PR: **#1**.
 6. **Pick a restic backend** (Backblaze B2 vs S3) and create the bucket.
 7. **Decide the first project(s)** the hub coordinates → clone under
    `workspace/repos/`.
-8. **Hub app next** (`app/`): brain + live health + Basic Auth + write box +
-   `/brain` search/kind-filter/delete + stat tiles + auto-refresh + n8n starter +
-   CI are done. Next candidates — pagination on `/brain`; edit entries; wire n8n
-   to the live brain; charts on the stat tiles; entity/relations view.
+8. **Hub app** (`app/`): brain CRUD (add/edit/delete), search + kind filters +
+   pagination, stat tiles + kind chart, live health, auto-refresh, Basic Auth,
+   two n8n workflows, and CI are all done. Next candidates — a live-DB smoke test
+   in CI (postgres service); entity/relations view; per-agent activity; export.
 9. *(Later)* Forgejo, if Git sovereignty is wanted.
 
 ## Verify locally
@@ -51,6 +51,15 @@ docker compose config -q                 # stack validates
 
 ## Recently done
 
+- **2026-07-23** — Added **pagination, edit, kind chart, webhook workflow**
+  (PR #1): `/brain` **pagination** (25/page, newer/older); **inline edit** per
+  entry (`PATCH /api/memory?id=`) via `ManagedEntry`; a **kind-distribution bar
+  chart** on the dashboard stats; a second n8n workflow
+  (`n8n/webhook-to-brain.workflow.json`) exposing a webhook that funnels external
+  events into the brain. `recentMemory` refactored to an options object with
+  `offset`. Build + typecheck + lint green; PATCH/pagination/routes smoke-tested.
+  (Live-DB E2E pending — no Docker daemon in the build sandbox; runs once the
+  stack is up.) **CI is green on the prior commit.**
 - **2026-07-23** — Added **manage + insight + CI** (PR #1): per-entry **delete**
   (`DELETE /api/memory?id=`), **kind filter chips** with counts + exact `kind`
   filter on `/brain`, **stat tiles** on the dashboard (`/api/stats`:

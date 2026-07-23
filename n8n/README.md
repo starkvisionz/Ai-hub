@@ -18,7 +18,8 @@ not `localhost`. So n8n calls the hub app at `http://hub-app:3000`, Postgres at
 
 | File | What it does |
 |------|--------------|
-| [`log-to-brain.workflow.json`](./log-to-brain.workflow.json) | Every hour, POSTs a heartbeat entry into the shared brain (`hub-app` → `/api/memory`). Template for logging real events (GitHub webhooks, deploy results, alerts) into hub context. |
+| [`log-to-brain.workflow.json`](./log-to-brain.workflow.json) | Every hour, POSTs a heartbeat entry into the shared brain (`hub-app` → `/api/memory`). Template for scheduled logging. |
+| [`webhook-to-brain.workflow.json`](./webhook-to-brain.workflow.json) | Exposes an n8n webhook (`POST …/webhook/hub-brain`) that forwards `{ agent, kind, content }` into the brain. Point GitHub / monitoring / other webhooks at it to funnel external events into hub context. |
 
 ## Idea backlog
 

@@ -5,7 +5,7 @@ import { MemoryComposer } from "./MemoryComposer";
 import { MemoryList } from "./MemoryList";
 
 export async function MemoryPanel() {
-  const entries = await recentMemory(10);
+  const entries = await recentMemory({ limit: 10 });
 
   return (
     <section className="mb-10">

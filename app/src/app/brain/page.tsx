@@ -7,19 +7,41 @@ import { LiveRefresh } from "@/components/LiveRefresh";
 
 export const dynamic = "force-dynamic";
 
+const PAGE_SIZE = 25;
+
 export default async function BrainPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; kind?: string }>;
+  searchParams: Promise<{ q?: string; kind?: string; page?: string }>;
 }) {
-  const { q, kind } = await searchParams;
-  const query = q?.trim() ?? "";
-  const kindFilter = kind?.trim() ?? "";
+  const sp = await searchParams;
+  const query = sp.q?.trim() ?? "";
+  const kindFilter = sp.kind?.trim() ?? "";
+  const page = Math.max(1, Number(sp.page) || 1);
+  const offset = (page - 1) * PAGE_SIZE;
 
-  const [entries, stats] = await Promise.all([
-    recentMemory(100, query || undefined, kindFilter || undefined),
+  const [fetched, stats] = await Promise.all([
+    // Fetch one extra row to detect whether a next page exists.
+    recentMemory({
+      limit: PAGE_SIZE + 1,
+      offset,
+      q: query || undefined,
+      kind: kindFilter || undefined,
+    }),
     memoryStats(),
   ]);
+
+  const hasNext = fetched !== null && fetched.length > PAGE_SIZE;
+  const entries = fetched === null ? null : fetched.slice(0, PAGE_SIZE);
+
+  const pageHref = (p: number) => {
+    const params = new URLSearchParams();
+    if (query) params.set("q", query);
+    if (kindFilter) params.set("kind", kindFilter);
+    if (p > 1) params.set("page", String(p));
+    const s = params.toString();
+    return s ? `/brain?${s}` : "/brain";
+  };
 
   const chipHref = (k: string) => {
     const params = new URLSearchParams();
@@ -97,7 +119,7 @@ export default async function BrainPage({
       {(query || kindFilter) && (
         <p className="mb-3 text-xs text-slate-400">
           {entries === null ? "—" : entries.length} result
-          {entries?.length === 1 ? "" : "s"}
+          {entries?.length === 1 ? "" : "s"} on this page
           {query && ` for “${query}”`}
           {kindFilter && ` in kind “${kindFilter}”`}
         </p>
@@ -107,7 +129,7 @@ export default async function BrainPage({
         <MemoryList
           entries={entries}
           dbConfigured={isDbConfigured()}
-          deletable
+          manageable
           emptyHint={
             query || kindFilter
               ? "No entries match this filter."
@@ -115,6 +137,32 @@ export default async function BrainPage({
           }
         />
       </div>
+
+      {(page > 1 || hasNext) && (
+        <nav className="mt-4 flex items-center justify-between text-sm">
+          {page > 1 ? (
+            <Link
+              href={pageHref(page - 1)}
+              className="rounded-lg border border-slate-200 px-3 py-1.5 text-slate-600 hover:border-slate-300 dark:border-slate-700 dark:text-slate-300"
+            >
+              ← Newer
+            </Link>
+          ) : (
+            <span />
+          )}
+          <span className="text-xs text-slate-400">page {page}</span>
+          {hasNext ? (
+            <Link
+              href={pageHref(page + 1)}
+              className="rounded-lg border border-slate-200 px-3 py-1.5 text-slate-600 hover:border-slate-300 dark:border-slate-700 dark:text-slate-300"
+            >
+              Older →
+            </Link>
+          ) : (
+            <span />
+          )}
+        </nav>
+      )}
     </main>
   );
 }
