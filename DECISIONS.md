@@ -26,6 +26,8 @@ volume. Revisit only if human-facing file sync / Office collab becomes a need.
 enable only on a GPU host. Claude remains the primary model.
 **Why:** CPU inference is too slow to be useful. Avoids committing the hub to
 GPU costs before there's hardware. Trivial to enable when a GPU is available.
+**Update (2026-07-23):** Host confirmed as **KVM2 (CPU-only, no GPU)** → Ollama
+stays disabled. Also a RAM-budget concern on ~8 GB; keeping it off protects that.
 
 ## D-0009 — Forgejo deferred to Phase 2 (conditional)   (2026-07-23, status: accepted)
 **Context:** A self-hosted Git forge was considered.

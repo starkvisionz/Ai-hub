@@ -83,16 +83,25 @@ Different AI sessions stay coordinated two ways:
 ## Environment assumptions
 
 - **VPS OS:** Ubuntu (LTS). Adjust in [`SETUP.md`](./SETUP.md) if different.
+- **VPS plan:** **KVM2** — CPU-only KVM VPS (~2 vCPU / 8 GB RAM, no GPU).
 - **VPS host:** stored as `VPS_HOST` in `.env` (git-ignored) — not committed, to
   avoid advertising the box publicly.
 - **Control panel:** Coolify (self-hosted, Docker-based).
 - **Access:** Tailscale (mesh VPN) in front of Coolify + code-server; Cloudflare
   Tunnel only for any deliberately public service.
 
+## Resource budget (KVM2, ~8 GB RAM — RAM is the ceiling, not CPU)
+
+Coolify brings its own Postgres/Redis; our stack adds a second Postgres, n8n,
+code-server, Homepage, and restic. Fits for light use, but watch memory:
+- Keep Hermes/Ollama **off** (no GPU, and it would blow the RAM budget anyway).
+- If RAM gets tight: drop the separate pgvector Postgres and reuse a Coolify-
+  managed DB, and/or point n8n at that same Postgres instead of its own volume.
+
 ## Open unknowns (fill in as decided)
 
-- [ ] **Does the VPS have a GPU?** — decides whether Hermes/Ollama is enabled.
-- [ ] VPS provider, region, and specs — _host IP known, kept in `.env`_
+- [x] **GPU?** — No. KVM2 is CPU-only → Hermes/Ollama stays disabled.
+- [x] VPS provider/specs — KVM2, CPU-only; host IP kept in `.env`.
 - [ ] Domain(s) for services — _TBD_
 - [ ] Restic backend + off-site bucket (B2 vs S3) — _TBD_
 - [ ] Which projects the hub coordinates first — _TBD, list under `workspace/repos/`_

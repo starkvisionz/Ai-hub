@@ -12,10 +12,10 @@
 GPU-only). Nothing is **deployed** yet. VPS is provisioned (host IP known, kept
 in `.env`, not committed). Open PR: **#1**.
 
-## Blocking question
+## Resolved
 
-- **Does the VPS (`89.116.49.20`) have a GPU?** Decides whether Hermes/Ollama is
-  enabled. Until answered, Ollama stays commented out in `docker-compose.yml`.
+- **GPU?** No — host is **KVM2 (CPU-only, ~2 vCPU / 8 GB RAM)**. Hermes/Ollama
+  stays disabled; Claude is primary. Watch RAM (see `CONTEXT.md` resource budget).
 
 ## Next up (pick from here)
 
