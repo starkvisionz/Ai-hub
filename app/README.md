@@ -36,20 +36,24 @@ renders. Set these in Coolify (point URLs at your Tailscale hostname):
   short timeout), a write box, and the recent shared-brain feed. Auto-refreshes
   every ~20s (pauses when the tab is hidden). Rendered per request.
 - `/brain` — full brain browser: search across content/agent/kind, **kind and
-  agent filter chips** (with counts), **pagination**, **inline edit + delete**
-  per entry, **export** buttons, plus the write box. Auto-refreshes every ~30s.
+  agent filter chips** (with counts), a **pinned-only** toggle, **pagination**,
+  **inline pin / edit / delete** per entry, **export** + **feed** links, plus the
+  write box. Pinned entries float to the top. Auto-refreshes every ~30s.
 - `/api/health` — JSON liveness probe (`{ status: "ok", ... }`). Left open even
   when Basic Auth is on, so Docker/Coolify healthchecks work.
 - `/api/memory` — the shared brain.
-  - `GET /api/memory?limit=20&offset=0&q=term&kind=note&agent=claude` → recent
-    (optionally filtered/paged) entries.
+  - `GET /api/memory?limit=20&offset=0&q=term&kind=note&agent=claude&pinned=1` →
+    recent (optionally filtered/paged) entries; pinned float first.
   - `POST /api/memory` `{ "content": "...", "agent"?, "kind"? }` → append (201).
-  - `PATCH /api/memory?id=123` `{ "content"?, "kind"? }` → update one entry.
+  - `PATCH /api/memory?id=123` `{ "content"?, "kind"?, "pinned"? }` → update one
+    entry (content/kind/pin state).
   - `DELETE /api/memory?id=123` → remove one entry.
 - `/api/stats` — brain counts: `{ total, byKind[], byAgent[], lastAt }` (feeds the
   dashboard stat tiles + kind chart, and the `/brain` filter chips).
 - `/api/export?format=json|csv&q=&kind=&agent=` → download the (filtered) brain
   as JSON or CSV (with a `Content-Disposition` attachment).
+- `/api/feed?format=json|rss&kind=&agent=` → recent context as a subscribable
+  feed (JSON Feed 1.1 or RSS 2.0) for external readers.
 
 ## Shared brain (Postgres)
 

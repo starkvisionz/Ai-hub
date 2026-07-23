@@ -7,8 +7,12 @@ CREATE TABLE IF NOT EXISTS hub_memory (
   agent      TEXT        NOT NULL DEFAULT 'unknown',
   kind       TEXT        NOT NULL DEFAULT 'note',
   content    TEXT        NOT NULL,
+  pinned     BOOLEAN     NOT NULL DEFAULT false,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- Additive migration for tables created before the pinned column existed.
+ALTER TABLE hub_memory ADD COLUMN IF NOT EXISTS pinned BOOLEAN NOT NULL DEFAULT false;
 
 CREATE INDEX IF NOT EXISTS hub_memory_created_idx
   ON hub_memory (created_at DESC);

@@ -8,8 +8,11 @@ export type MemoryEntry = {
   agent: string;
   kind: string;
   content: string;
+  pinned: boolean;
   created_at: string;
 };
+
+const COLS = "id, agent, kind, content, pinned, created_at";
 
 let schemaReady = false;
 
@@ -26,6 +29,10 @@ export async function ensureSchema(): Promise<boolean> {
     );
   `);
   if (r === null) return false;
+  // Additive migration for existing tables.
+  await query(
+    `ALTER TABLE hub_memory ADD COLUMN IF NOT EXISTS pinned BOOLEAN NOT NULL DEFAULT false;`,
+  );
   await query(
     `CREATE INDEX IF NOT EXISTS hub_memory_created_idx ON hub_memory (created_at DESC);`,
   );
@@ -39,6 +46,7 @@ export type MemoryQuery = {
   q?: string;
   kind?: string;
   agent?: string;
+  pinnedOnly?: boolean;
 };
 
 // Build the shared WHERE clause for content search + exact kind/agent filters.
@@ -63,6 +71,9 @@ function buildFilter(opts: MemoryQuery): { where: string; params: unknown[] } {
     params.push(agentFilter);
     conditions.push(`agent = $${params.length}`);
   }
+  if (opts.pinnedOnly) {
+    conditions.push(`pinned = true`);
+  }
   return {
     where: conditions.length ? `WHERE ${conditions.join(" AND ")}` : "",
     params,
@@ -82,10 +93,10 @@ export async function recentMemory(
   const offsetP = `$${params.length}`;
 
   const r = await query<MemoryEntry>(
-    `SELECT id, agent, kind, content, created_at
+    `SELECT ${COLS}
        FROM hub_memory
       ${where}
-      ORDER BY created_at DESC
+      ORDER BY pinned DESC, created_at DESC
       LIMIT ${limitP} OFFSET ${offsetP}`,
     params,
   );
@@ -101,10 +112,10 @@ export async function exportMemory(
   const { where, params } = buildFilter(opts);
   params.push(Math.min(Math.max(1, cap), 50000));
   const r = await query<MemoryEntry>(
-    `SELECT id, agent, kind, content, created_at
+    `SELECT ${COLS}
        FROM hub_memory
       ${where}
-      ORDER BY created_at DESC
+      ORDER BY pinned DESC, created_at DESC
       LIMIT $${params.length}`,
     params,
   );
@@ -113,7 +124,7 @@ export async function exportMemory(
 
 export async function editMemory(
   id: number,
-  patch: { content?: string; kind?: string },
+  patch: { content?: string; kind?: string; pinned?: boolean },
 ): Promise<MemoryEntry | null> {
   if (!Number.isInteger(id) || id <= 0) return null;
   if (!(await ensureSchema())) return null;
@@ -127,12 +138,16 @@ export async function editMemory(
     params.push(patch.kind.trim().slice(0, 60));
     sets.push(`kind = $${params.length}`);
   }
+  if (typeof patch.pinned === "boolean") {
+    params.push(patch.pinned);
+    sets.push(`pinned = $${params.length}`);
+  }
   if (sets.length === 0) return null;
   params.push(id);
   const r = await query<MemoryEntry>(
     `UPDATE hub_memory SET ${sets.join(", ")}
       WHERE id = $${params.length}
-      RETURNING id, agent, kind, content, created_at`,
+      RETURNING ${COLS}`,
     params,
   );
   return r && r.rows[0] ? r.rows[0] : null;
@@ -197,7 +212,7 @@ export async function addMemory(input: {
   const r = await query<MemoryEntry>(
     `INSERT INTO hub_memory (agent, kind, content)
      VALUES ($1, $2, $3)
-     RETURNING id, agent, kind, content, created_at`,
+     RETURNING ${COLS}`,
     [
       (input.agent ?? "unknown").slice(0, 120),
       (input.kind ?? "note").slice(0, 60),

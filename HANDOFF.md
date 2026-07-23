@@ -51,6 +51,12 @@ docker compose config -q                 # stack validates
 
 ## Recently done
 
+- **2026-07-23** — Added **pin/star + feed** (PR #1): `pinned` column (additive
+  migration in `ensureSchema` + `db/schema.sql`); pinned entries **float to top**;
+  inline **pin toggle** and a **pinned-only** filter on `/brain`;
+  `GET /api/feed?format=json|rss` (JSON Feed 1.1 / RSS 2.0) for external readers,
+  linked from `/brain`. Build + typecheck + lint green; pinned routes + feed
+  (503 no-DB) smoke-tested.
 - **2026-07-23** — Added **agent dimension + export** (PR #1): exact **agent
   filter** across the query layer + stats `byAgent`; **agent filter chips** on
   `/brain` (alongside kind chips); **export** the (filtered) brain as JSON or CSV

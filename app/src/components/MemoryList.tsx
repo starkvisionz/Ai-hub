@@ -45,6 +45,11 @@ export function MemoryList({
         ) : (
           <li key={e.id} className="py-3 first:pt-0 last:pb-0">
             <div className="flex items-center gap-2 text-xs text-slate-400">
+              {e.pinned && (
+                <span className="text-amber-500" title="Pinned">
+                  ★
+                </span>
+              )}
               <span className="rounded bg-slate-100 px-1.5 py-0.5 font-mono dark:bg-slate-800">
                 {e.agent}
               </span>

@@ -12,12 +12,19 @@ const PAGE_SIZE = 25;
 export default async function BrainPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; kind?: string; agent?: string; page?: string }>;
+  searchParams: Promise<{
+    q?: string;
+    kind?: string;
+    agent?: string;
+    page?: string;
+    pinned?: string;
+  }>;
 }) {
   const sp = await searchParams;
   const query = sp.q?.trim() ?? "";
   const kindFilter = sp.kind?.trim() ?? "";
   const agentFilter = sp.agent?.trim() ?? "";
+  const pinnedOnly = sp.pinned === "1";
   const page = Math.max(1, Number(sp.page) || 1);
   const offset = (page - 1) * PAGE_SIZE;
 
@@ -28,25 +35,34 @@ export default async function BrainPage({
       q: query || undefined,
       kind: kindFilter || undefined,
       agent: agentFilter || undefined,
+      pinnedOnly,
     }),
     memoryStats(),
   ]);
 
   const hasNext = fetched !== null && fetched.length > PAGE_SIZE;
   const entries = fetched === null ? null : fetched.slice(0, PAGE_SIZE);
-  const hasFilters = Boolean(query || kindFilter || agentFilter);
+  const hasFilters = Boolean(query || kindFilter || agentFilter || pinnedOnly);
 
   const buildHref = (
-    over: Partial<{ q: string; kind: string; agent: string; page: number }>,
+    over: Partial<{
+      q: string;
+      kind: string;
+      agent: string;
+      page: number;
+      pinned: boolean;
+    }>,
   ) => {
     const params = new URLSearchParams();
     const q = over.q ?? query;
     const kind = over.kind ?? kindFilter;
     const agent = over.agent ?? agentFilter;
+    const pinned = over.pinned ?? pinnedOnly;
     const p = over.page ?? 1;
     if (q) params.set("q", q);
     if (kind) params.set("kind", kind);
     if (agent) params.set("agent", agent);
+    if (pinned) params.set("pinned", "1");
     if (p > 1) params.set("page", String(p));
     const s = params.toString();
     return s ? `/brain?${s}` : "/brain";
@@ -79,7 +95,7 @@ export default async function BrainPage({
               {stats ? ` · ${stats.total} total` : ""}.
             </p>
           </div>
-          <div className="flex shrink-0 gap-2 text-xs">
+          <div className="flex shrink-0 flex-wrap justify-end gap-2 text-xs">
             <a
               href={exportHref("json")}
               className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-slate-500 hover:border-slate-300 dark:border-slate-700 dark:text-slate-400"
@@ -91,6 +107,13 @@ export default async function BrainPage({
               className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-slate-500 hover:border-slate-300 dark:border-slate-700 dark:text-slate-400"
             >
               CSV
+            </a>
+            <a
+              href="/api/feed?format=json"
+              className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-slate-500 hover:border-slate-300 dark:border-slate-700 dark:text-slate-400"
+              title="Recent context as a subscribable feed"
+            >
+              Feed
             </a>
           </div>
         </div>
@@ -120,6 +143,19 @@ export default async function BrainPage({
           </Link>
         )}
       </form>
+
+      <div className="mb-2">
+        <Link
+          href={buildHref({ pinned: !pinnedOnly, page: 1 })}
+          className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs transition ${
+            pinnedOnly
+              ? "border-amber-500 bg-amber-500 text-white"
+              : "border-slate-200 text-slate-500 hover:border-amber-400 dark:border-slate-700 dark:text-slate-400"
+          }`}
+        >
+          {pinnedOnly ? "★ pinned only" : "☆ pinned only"}
+        </Link>
+      </div>
 
       {stats && stats.byKind.length > 0 && (
         <div className="mb-2 flex flex-wrap items-center gap-2">

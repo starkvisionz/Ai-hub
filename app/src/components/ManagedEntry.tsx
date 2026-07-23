@@ -13,6 +13,21 @@ export function ManagedEntry({ entry }: { entry: MemoryEntry }) {
   const [kind, setKind] = useState(entry.kind);
   const [busy, setBusy] = useState(false);
 
+  async function togglePin() {
+    if (busy) return;
+    setBusy(true);
+    try {
+      const res = await fetch(`/api/memory?id=${entry.id}`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ pinned: !entry.pinned }),
+      });
+      if (res.ok) router.refresh();
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function save() {
     if (busy || !content.trim()) return;
     setBusy(true);
@@ -84,6 +99,20 @@ export function ManagedEntry({ entry }: { entry: MemoryEntry }) {
           </>
         ) : (
           <>
+            <button
+              type="button"
+              onClick={togglePin}
+              disabled={busy}
+              className={`rounded px-1 disabled:opacity-40 ${
+                entry.pinned
+                  ? "text-amber-500 hover:text-amber-600"
+                  : "text-slate-300 hover:text-amber-500 dark:text-slate-600"
+              }`}
+              aria-label={entry.pinned ? "Unpin entry" : "Pin entry"}
+              title={entry.pinned ? "Unpin entry" : "Pin entry"}
+            >
+              {entry.pinned ? "★" : "☆"}
+            </button>
             <button
               type="button"
               onClick={() => setEditing(true)}

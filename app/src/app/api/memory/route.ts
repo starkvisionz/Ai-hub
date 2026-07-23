@@ -12,12 +12,14 @@ export async function GET(request: Request) {
   const q = searchParams.get("q") ?? undefined;
   const kind = searchParams.get("kind") ?? undefined;
   const agent = searchParams.get("agent") ?? undefined;
+  const pinnedOnly = searchParams.get("pinned") === "1";
   const rows = await recentMemory({
     limit: Number.isFinite(limit) ? limit : 20,
     offset: Number.isFinite(offset) ? offset : 0,
     q,
     kind,
     agent,
+    pinnedOnly,
   });
   if (rows === null) {
     return NextResponse.json(
@@ -68,10 +70,11 @@ export async function PATCH(request: Request) {
   } catch {
     return NextResponse.json({ error: "invalid_json" }, { status: 400 });
   }
-  const { content, kind } = (body ?? {}) as Record<string, unknown>;
+  const { content, kind, pinned } = (body ?? {}) as Record<string, unknown>;
   const entry = await editMemory(id, {
     content: typeof content === "string" ? content : undefined,
     kind: typeof kind === "string" ? kind : undefined,
+    pinned: typeof pinned === "boolean" ? pinned : undefined,
   });
   if (!entry) {
     return NextResponse.json(
