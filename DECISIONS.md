@@ -13,6 +13,18 @@ Why:      the reasoning / alternatives rejected
 
 ---
 
+## D-0013 — Shared brain via Postgres `hub_memory` + graceful degradation + optional Basic Auth   (2026-07-23, status: accepted)
+**Context:** The hub app needs to read/write shared context and show live service
+state, without hard-failing when the DB or services are down.
+**Decision:** Add a `hub_memory` table (app-managed schema) exposed via
+`GET/POST /api/memory`; probe active services server-side for live health; gate
+the app behind optional HTTP Basic Auth (`HUB_BASIC_AUTH_*`, `/api/health` exempt).
+**Why:** Gives agents/n8n a simple HTTP surface to coordinate through, and makes
+the dashboard genuinely live. Graceful degradation (null-on-failure DB layer,
+timed health probes) keeps the app up during partial outages. Basic Auth is a
+cheap second layer behind Tailscale. All paths verified green (build + runtime
+smoke test: DB-absent, memory API, and 401/200 auth).
+
 ## D-0012 — Hub app: Next.js 15 App Router + TypeScript + Tailwind   (2026-07-23, status: accepted)
 **Context:** The hub needs a web surface (dashboard/API) as its front door.
 **Decision:** Build it in **Next.js 15 (App Router) + TypeScript + Tailwind v3**,
@@ -120,4 +132,4 @@ docs and reality stay together.
 
 ---
 
-_Add the next decision above this line as `D-0013`._
+_Add the next decision above this line as `D-0014`._

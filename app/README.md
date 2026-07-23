@@ -17,20 +17,41 @@ Other scripts: `npm run build`, `npm run start`, `npm run lint`,
 
 ## Configuration
 
-Service links default to loopback and are overridable via env (set these in
-Coolify to point at your Tailscale hostname):
+Everything degrades gracefully: no `DATABASE_URL` → the shared-brain panel shows a
+hint instead of erroring; unreachable services → red health dots, page still
+renders. Set these in Coolify (point URLs at your Tailscale hostname):
 
-| Var | Default |
-|-----|---------|
-| `SVC_COOLIFY_URL` | `http://localhost:8000` |
-| `SVC_CODE_SERVER_URL` | `http://localhost:8080` |
-| `SVC_N8N_URL` | `http://localhost:5678` |
-| `SVC_HOMEPAGE_URL` | `http://localhost:3001` |
+| Var | Purpose | Default |
+|-----|---------|---------|
+| `DATABASE_URL` | Postgres brain (enables `/api/memory` + panel) | _unset → brain disabled_ |
+| `SVC_COOLIFY_URL` | Dashboard link + health probe | `http://localhost:8000` |
+| `SVC_CODE_SERVER_URL` | " | `http://localhost:8080` |
+| `SVC_N8N_URL` | " | `http://localhost:5678` |
+| `SVC_HOMEPAGE_URL` | " | `http://localhost:3001` |
+| `HUB_BASIC_AUTH_USER` / `HUB_BASIC_AUTH_PASSWORD` | Enable Basic Auth (both required) | _unset → open_ |
 
 ## Routes
 
-- `/` — service dashboard (server component, reads `src/lib/services.ts`).
-- `/api/health` — JSON liveness probe (`{ status: "ok", ... }`).
+- `/` — live service dashboard: health-probes each active service (server-side,
+  short timeout) and shows the shared-brain feed. Rendered per request.
+- `/api/health` — JSON liveness probe (`{ status: "ok", ... }`). Left open even
+  when Basic Auth is on, so Docker/Coolify healthchecks work.
+- `/api/memory` — the shared brain.
+  - `GET /api/memory?limit=20` → recent context entries.
+  - `POST /api/memory` `{ "content": "...", "agent"?, "kind"? }` → append an
+    entry (201). Agents and n8n workflows write hub context here.
+
+## Shared brain (Postgres)
+
+Schema in [`db/schema.sql`](./db/schema.sql) (`hub_memory` table). The app creates
+it on demand; you can also apply it manually:
+`psql "$DATABASE_URL" -f db/schema.sql`.
+
+## Auth
+
+Set `HUB_BASIC_AUTH_USER` + `HUB_BASIC_AUTH_PASSWORD` to gate the dashboard behind
+HTTP Basic Auth (see `src/middleware.ts`). Leave unset for frictionless local dev.
+This is a second layer on top of Tailscale, not a replacement for it.
 
 ## Deploy
 

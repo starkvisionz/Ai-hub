@@ -32,9 +32,11 @@ in `.env`, not committed). Open PR: **#1**.
 6. **Pick a restic backend** (Backblaze B2 vs S3) and create the bucket.
 7. **Decide the first project(s)** the hub coordinates → clone under
    `workspace/repos/`.
-8. **Grow the hub app** (`app/`): wire it to the Postgres brain (it already
-   receives `DATABASE_URL`), add live service health tiles, and an auth gate.
-9. *(Later)* Forgejo, if Git sovereignty is wanted.
+8. **Hub app next** (`app/`): brain, live health, and Basic Auth are done. Next
+   candidates — a write box / form to post to `/api/memory` from the UI, wire n8n
+   to log workflow runs into the brain, and auto-refresh the dashboard.
+9. **CI**: add `.github/workflows` to lint compose + typecheck/build the app on PRs.
+10. *(Later)* Forgejo, if Git sovereignty is wanted.
 
 ## Verify locally
 
@@ -49,6 +51,13 @@ docker compose config -q                 # stack validates
 
 ## Recently done
 
+- **2026-07-23** — Made the hub app **live** (PR #1): Postgres **shared brain**
+  (`hub_memory`, schema in `app/db/schema.sql`) with `GET/POST /api/memory`;
+  **server-side health probes** per active service (live status dots); optional
+  **HTTP Basic Auth** gate (`HUB_BASIC_AUTH_*`, `/api/health` exempt). All
+  degrades gracefully with no DB/services. **Verified**: build + typecheck +
+  lint green, and a runtime smoke test (health ok, memory API graceful without
+  DB, auth 401→200). Decision D-0013.
 - **2026-07-23** — Built the **Next.js hub app** (PR #1) in `app/`: Next.js 15
   App Router + TS + Tailwind, service dashboard + `/api/health`, standalone
   Dockerfile. `next@15.5.21` (patches CVE-2025-66478). **Build + typecheck +

@@ -167,6 +167,9 @@ services:
       SVC_CODE_SERVER_URL: ${SVC_CODE_SERVER_URL:-http://localhost:8080}
       SVC_N8N_URL: ${SVC_N8N_URL:-http://localhost:5678}
       SVC_HOMEPAGE_URL: ${SVC_HOMEPAGE_URL:-http://localhost:3001}
+      # Optional Basic Auth gate (set both to enable):
+      HUB_BASIC_AUTH_USER: ${HUB_BASIC_AUTH_USER:-}
+      HUB_BASIC_AUTH_PASSWORD: ${HUB_BASIC_AUTH_PASSWORD:-}
     depends_on:
       postgres:
         condition: service_healthy

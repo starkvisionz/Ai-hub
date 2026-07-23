@@ -1,10 +1,17 @@
 import { ServiceCard } from "@/components/ServiceCard";
+import { MemoryPanel } from "@/components/MemoryPanel";
 import { services, type HubService } from "@/lib/services";
+import { checkAll } from "@/lib/health";
+
+// Rendered per-request so health probes + brain reads reflect live state.
+export const dynamic = "force-dynamic";
 
 const groups: HubService["group"][] = ["Infrastructure", "Automation & AI"];
 
-export default function Home() {
+export default async function Home() {
+  const health = await checkAll();
   const activeCount = services.filter((s) => s.state === "active").length;
+  const upCount = Object.values(health).filter((h) => h.health === "up").length;
 
   return (
     <main className="mx-auto max-w-5xl px-6 py-12">
@@ -24,8 +31,8 @@ export default function Home() {
           </div>
         </div>
         <p className="mt-4 text-sm text-slate-500 dark:text-slate-400">
-          {activeCount} services active · Claude is the primary model · access
-          gated behind Tailscale.
+          {upCount}/{activeCount} active services reachable · Claude is the
+          primary model · access gated behind Tailscale.
         </p>
       </header>
 
@@ -38,15 +45,21 @@ export default function Home() {
             {services
               .filter((s) => s.group === group)
               .map((service) => (
-                <ServiceCard key={service.name} service={service} />
+                <ServiceCard
+                  key={service.name}
+                  service={service}
+                  health={health[service.name]?.health}
+                  latencyMs={health[service.name]?.ms}
+                />
               ))}
           </div>
         </section>
       ))}
 
+      <MemoryPanel />
+
       <footer className="mt-12 border-t border-slate-200 pt-6 text-xs text-slate-400 dark:border-slate-800">
-        AI Hub · see{" "}
-        <span className="font-mono">HANDOFF.md</span> for live state ·{" "}
+        AI Hub · see <span className="font-mono">HANDOFF.md</span> for live state ·{" "}
         <a
           className="underline hover:text-slate-600 dark:hover:text-slate-300"
           href="/api/health"

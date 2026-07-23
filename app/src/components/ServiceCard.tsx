@@ -1,4 +1,5 @@
 import type { HubService, ServiceState } from "@/lib/services";
+import type { Health } from "@/lib/health";
 
 const stateStyles: Record<ServiceState, { label: string; className: string }> = {
   active: {
@@ -18,14 +19,28 @@ const stateStyles: Record<ServiceState, { label: string; className: string }> = 
   },
   future: {
     label: "future",
-    className:
-      "bg-sky-100 text-sky-800 dark:bg-sky-900/50 dark:text-sky-300",
+    className: "bg-sky-100 text-sky-800 dark:bg-sky-900/50 dark:text-sky-300",
   },
 };
 
-export function ServiceCard({ service }: { service: HubService }) {
+const healthDot: Record<Health, { className: string; title: string }> = {
+  up: { className: "bg-emerald-500", title: "reachable" },
+  down: { className: "bg-rose-500", title: "unreachable" },
+  unknown: { className: "bg-slate-400", title: "not probed" },
+};
+
+export function ServiceCard({
+  service,
+  health,
+  latencyMs,
+}: {
+  service: HubService;
+  health?: Health;
+  latencyMs?: number | null;
+}) {
   const badge = stateStyles[service.state];
   const interactive = Boolean(service.href) && service.state === "active";
+  const dot = health ? healthDot[health] : null;
 
   const inner = (
     <div
@@ -37,7 +52,16 @@ export function ServiceCard({ service }: { service: HubService }) {
     >
       <div>
         <div className="flex items-center justify-between gap-2">
-          <h3 className="font-semibold">{service.name}</h3>
+          <div className="flex items-center gap-2">
+            {dot && (
+              <span
+                aria-label={dot.title}
+                title={dot.title}
+                className={`inline-block h-2.5 w-2.5 shrink-0 rounded-full ${dot.className}`}
+              />
+            )}
+            <h3 className="font-semibold">{service.name}</h3>
+          </div>
           <span
             className={`rounded-full px-2 py-0.5 text-xs font-medium ${badge.className}`}
           >
@@ -49,9 +73,14 @@ export function ServiceCard({ service }: { service: HubService }) {
         </p>
       </div>
       {service.href && (
-        <span className="mt-4 truncate text-xs font-mono text-slate-400">
-          {service.href}
-        </span>
+        <div className="mt-4 flex items-center justify-between gap-2">
+          <span className="truncate text-xs font-mono text-slate-400">
+            {service.href}
+          </span>
+          {health === "up" && typeof latencyMs === "number" && (
+            <span className="shrink-0 text-xs text-slate-400">{latencyMs}ms</span>
+          )}
+        </div>
       )}
     </div>
   );
