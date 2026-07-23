@@ -94,6 +94,15 @@ export function ManagedEntry({ entry }: { entry: MemoryEntry }) {
         >
           #{entry.id}
         </Link>
+        {typeof entry.link_count === "number" && entry.link_count > 0 && (
+          <Link
+            href={`/brain/${entry.id}`}
+            className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+            title={`${entry.link_count} link${entry.link_count === 1 ? "" : "s"}`}
+          >
+            ⛓ {entry.link_count}
+          </Link>
+        )}
         <span>{timeAgo(entry.created_at)}</span>
         {editing ? (
           <>

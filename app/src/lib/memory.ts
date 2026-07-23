@@ -10,6 +10,9 @@ export type MemoryEntry = {
   content: string;
   pinned: boolean;
   created_at: string;
+  // Present on list queries (recentMemory) — number of relations touching this
+  // entry (in + out). Omitted by single-row fetches / mutations.
+  link_count?: number;
 };
 
 const COLS = "id, agent, kind, content, pinned, created_at";
@@ -35,6 +38,17 @@ export async function ensureSchema(): Promise<boolean> {
   );
   await query(
     `CREATE INDEX IF NOT EXISTS hub_memory_created_idx ON hub_memory (created_at DESC);`,
+  );
+  // Full-text search: a generated tsvector over content+agent+kind, GIN-indexed.
+  await query(
+    `ALTER TABLE hub_memory ADD COLUMN IF NOT EXISTS search tsvector
+       GENERATED ALWAYS AS (
+         to_tsvector('english',
+           coalesce(content,'') || ' ' || coalesce(agent,'') || ' ' || coalesce(kind,''))
+       ) STORED;`,
+  );
+  await query(
+    `CREATE INDEX IF NOT EXISTS hub_memory_search_idx ON hub_memory USING GIN (search);`,
   );
   // Relations: directed, labelled links between entries (a lightweight graph).
   await query(`
@@ -67,18 +81,29 @@ export type MemoryQuery = {
   pinnedOnly?: boolean;
 };
 
-// Build the shared WHERE clause for content search + exact kind/agent filters.
-function buildFilter(opts: MemoryQuery): { where: string; params: unknown[] } {
+// Build the shared WHERE clause. Search combines full-text (ranked, stemmed)
+// with substring ILIKE so partial words still match. `qParam` is the placeholder
+// holding the search term (for ts_rank ordering), or null when q is absent.
+function buildFilter(opts: MemoryQuery): {
+  where: string;
+  params: unknown[];
+  qParam: string | null;
+} {
   const conditions: string[] = [];
   const params: unknown[] = [];
+  let qParam: string | null = null;
   const term = opts.q?.trim();
   const kindFilter = opts.kind?.trim();
   const agentFilter = opts.agent?.trim();
   if (term) {
     params.push(term);
     const p = `$${params.length}`;
+    qParam = p;
     conditions.push(
-      `(content ILIKE '%' || ${p} || '%' OR agent ILIKE '%' || ${p} || '%' OR kind ILIKE '%' || ${p} || '%')`,
+      `(search @@ websearch_to_tsquery('english', ${p})` +
+        ` OR content ILIKE '%' || ${p} || '%'` +
+        ` OR agent ILIKE '%' || ${p} || '%'` +
+        ` OR kind ILIKE '%' || ${p} || '%')`,
     );
   }
   if (kindFilter) {
@@ -95,6 +120,7 @@ function buildFilter(opts: MemoryQuery): { where: string; params: unknown[] } {
   return {
     where: conditions.length ? `WHERE ${conditions.join(" AND ")}` : "",
     params,
+    qParam,
   };
 }
 
@@ -104,17 +130,25 @@ export async function recentMemory(
   if (!(await ensureSchema())) return null;
   const safeLimit = Math.min(Math.max(1, Math.floor(opts.limit ?? 20)), 101);
   const safeOffset = Math.max(0, Math.floor(opts.offset ?? 0));
-  const { where, params } = buildFilter(opts);
+  const { where, params, qParam } = buildFilter(opts);
   params.push(safeLimit);
   const limitP = `$${params.length}`;
   params.push(safeOffset);
   const offsetP = `$${params.length}`;
 
+  // Relevance-rank when searching; pinned always float first, recency breaks ties.
+  const rank = qParam
+    ? `ts_rank(search, websearch_to_tsquery('english', ${qParam})) DESC, `
+    : "";
+
   const r = await query<MemoryEntry>(
-    `SELECT ${COLS}
+    `SELECT ${COLS},
+            (SELECT count(*) FROM hub_links l
+              WHERE l.from_id = hub_memory.id OR l.to_id = hub_memory.id)::int
+              AS link_count
        FROM hub_memory
       ${where}
-      ORDER BY pinned DESC, created_at DESC
+      ORDER BY pinned DESC, ${rank}created_at DESC
       LIMIT ${limitP} OFFSET ${offsetP}`,
     params,
   );

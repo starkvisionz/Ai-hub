@@ -51,6 +51,11 @@ docker compose config -q                 # stack validates
 
 ## Recently done
 
+- **2026-07-23** — Added **ranked full-text search + link counts** (PR #1):
+  generated `search` tsvector (GIN-indexed); search now ranks by `ts_rank` (with
+  substring fallback) after pinned; list rows carry a `link_count` badge. E2E
+  extended (stemmed + substring + link_count) — **green against local Postgres
+  16**. Decision D-0017.
 - **2026-07-23** — Added **relations / knowledge graph** (PR #1): `hub_links`
   table (directed, labelled, `ON DELETE CASCADE`, unique, no self-link);
   `/api/links` (GET/POST/DELETE); a `/brain/[id]` detail page to view/add/remove

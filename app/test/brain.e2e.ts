@@ -34,10 +34,13 @@ async function main() {
   // Recent / count.
   assert.equal((await recentMemory({ limit: 10 }))?.length, 3, "3 entries listed");
 
-  // Full-text-ish search across content/agent/kind.
+  // Search across content/agent/kind (full-text + substring).
   const s = await recentMemory({ q: "deploy" });
   assert.equal(s?.length, 1, "search finds one");
   assert.equal(s?.[0].agent, "n8n", "search matched the right row");
+  // Stemmed full-text match (deployed -> deploy) and partial-word (substring).
+  assert.equal((await recentMemory({ q: "deployed" }))?.length, 1, "stemmed FTS match");
+  assert.equal((await recentMemory({ q: "depl" }))?.length, 1, "substring match");
 
   // Exact filters.
   assert.equal((await recentMemory({ kind: "note" }))?.length, 2, "kind filter");
@@ -80,6 +83,11 @@ async function main() {
   assert.equal(await addLink(c!.id, a!.id, "follows-up"), true, "addLink in");
   assert.equal(await addLink(a!.id, b!.id, "relates-to"), true, "addLink idempotent");
   assert.equal(await addLink(a!.id, a!.id, "self"), false, "no self-link");
+
+  // link_count surfaces on list queries.
+  const listed = await recentMemory({ limit: 10 });
+  const aRow = listed?.find((x) => x.id === a!.id);
+  assert.equal(aRow?.link_count, 2, "link_count reflects in+out links");
 
   const rel = await linksFor(a!.id);
   assert.equal(rel?.length, 2, "two related for a");

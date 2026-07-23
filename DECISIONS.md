@@ -13,6 +13,17 @@ Why:      the reasoning / alternatives rejected
 
 ---
 
+## D-0017 — Ranked full-text search (with substring fallback) + link counts   (2026-07-23, status: accepted)
+**Context:** Search was substring-only (unranked); list rows gave no sense of an
+entry's connectivity.
+**Decision:** Add a generated `search tsvector` column (content+agent+kind) with a
+GIN index; search now matches `websearch_to_tsquery` OR substring ILIKE, ordered
+by pinned, then `ts_rank`, then recency. List queries also return a `link_count`
+(in+out relations), shown as a badge on `/brain` rows.
+**Why:** Real relevance ranking and stemming while keeping partial-word matches;
+connectivity is visible at a glance. Generated column needs PG12+ (we target
+pg16). Verified E2E against local Postgres 16 (stemmed + substring + link_count).
+
 ## D-0016 — Relations: a lightweight knowledge graph over the brain   (2026-07-23, status: accepted)
 **Context:** Entries were isolated; agents want to connect related context
 (follow-ups, causes, duplicates).
@@ -166,4 +177,4 @@ docs and reality stay together.
 
 ---
 
-_Add the next decision above this line as `D-0017`._
+_Add the next decision above this line as `D-0018`._

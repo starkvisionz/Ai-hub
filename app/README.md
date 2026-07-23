@@ -49,7 +49,9 @@ renders. Set these in Coolify (point URLs at your Tailscale hostname):
   when Basic Auth is on, so Docker/Coolify healthchecks work.
 - `/api/memory` — the shared brain.
   - `GET /api/memory?limit=20&offset=0&q=term&kind=note&agent=claude&pinned=1` →
-    recent (optionally filtered/paged) entries; pinned float first.
+    recent (optionally filtered/paged) entries; pinned float first, then search
+    relevance (Postgres full-text `ts_rank`, with substring fallback), then
+    recency. Each row includes a `link_count` (relations touching it).
   - `POST /api/memory` `{ "content": "...", "agent"?, "kind"? }` → append (201).
   - `PATCH /api/memory?id=123` `{ "content"?, "kind"?, "pinned"? }` → update one
     entry (content/kind/pin state).
