@@ -11,10 +11,15 @@ import {
   deleteMemory,
   memoryStats,
   exportMemory,
+  getMemory,
+  addLink,
+  linksFor,
+  deleteLink,
 } from "../src/lib/memory";
 
 async function main() {
-  // Clean slate so the run is deterministic.
+  // Clean slate so the run is deterministic (drop links first: FK dependency).
+  await query("DROP TABLE IF EXISTS hub_links");
   const dropped = await query("DROP TABLE IF EXISTS hub_memory");
   assert.ok(dropped !== null, "DB reachable (DROP TABLE)");
 
@@ -66,8 +71,29 @@ async function main() {
   assert.equal((await exportMemory({}))?.length, 3, "export all");
   assert.equal((await exportMemory({ agent: "claude" }))?.length, 2, "export filtered");
 
-  // Delete.
+  // getMemory.
+  assert.equal((await getMemory(a!.id))?.id, a!.id, "getMemory by id");
+  assert.equal(await getMemory(999999), null, "getMemory missing -> null");
+
+  // Relations: link a<->b (out from a), and c->a (in to a).
+  assert.equal(await addLink(a!.id, b!.id, "relates-to"), true, "addLink out");
+  assert.equal(await addLink(c!.id, a!.id, "follows-up"), true, "addLink in");
+  assert.equal(await addLink(a!.id, b!.id, "relates-to"), true, "addLink idempotent");
+  assert.equal(await addLink(a!.id, a!.id, "self"), false, "no self-link");
+
+  const rel = await linksFor(a!.id);
+  assert.equal(rel?.length, 2, "two related for a");
+  assert.ok(rel?.some((r) => r.direction === "out" && r.entry.id === b!.id), "outgoing to b");
+  assert.ok(rel?.some((r) => r.direction === "in" && r.entry.id === c!.id), "incoming from c");
+
+  // Remove one link.
+  const outLink = rel!.find((r) => r.direction === "out")!;
+  assert.equal(await deleteLink(outLink.link_id), true, "deleteLink");
+  assert.equal((await linksFor(a!.id))?.length, 1, "one related after unlink");
+
+  // Cascade: deleting an entry removes its remaining links.
   assert.equal(await deleteMemory(c!.id), true, "delete returns true");
+  assert.equal((await linksFor(a!.id))?.length, 0, "links cascade-removed on entry delete");
   assert.equal((await recentMemory({ limit: 10 }))?.length, 2, "count after delete");
   assert.equal(await deleteMemory(c!.id), false, "re-delete returns false");
 

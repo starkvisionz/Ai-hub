@@ -36,6 +36,24 @@ export async function ensureSchema(): Promise<boolean> {
   await query(
     `CREATE INDEX IF NOT EXISTS hub_memory_created_idx ON hub_memory (created_at DESC);`,
   );
+  // Relations: directed, labelled links between entries (a lightweight graph).
+  await query(`
+    CREATE TABLE IF NOT EXISTS hub_links (
+      id         BIGSERIAL PRIMARY KEY,
+      from_id    BIGINT      NOT NULL REFERENCES hub_memory(id) ON DELETE CASCADE,
+      to_id      BIGINT      NOT NULL REFERENCES hub_memory(id) ON DELETE CASCADE,
+      rel        TEXT        NOT NULL DEFAULT 'relates-to',
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+      UNIQUE (from_id, to_id, rel),
+      CHECK (from_id <> to_id)
+    );
+  `);
+  await query(
+    `CREATE INDEX IF NOT EXISTS hub_links_from_idx ON hub_links (from_id);`,
+  );
+  await query(
+    `CREATE INDEX IF NOT EXISTS hub_links_to_idx ON hub_links (to_id);`,
+  );
   schemaReady = true;
   return true;
 }
@@ -158,6 +176,92 @@ export async function deleteMemory(id: number): Promise<boolean> {
   if (!(await ensureSchema())) return false;
   const r = await query(`DELETE FROM hub_memory WHERE id = $1`, [id]);
   return r ? r.rowCount === 1 : false;
+}
+
+export async function getMemory(id: number): Promise<MemoryEntry | null> {
+  if (!Number.isInteger(id) || id <= 0) return null;
+  if (!(await ensureSchema())) return null;
+  const r = await query<MemoryEntry>(
+    `SELECT ${COLS} FROM hub_memory WHERE id = $1`,
+    [id],
+  );
+  return r && r.rows[0] ? r.rows[0] : null;
+}
+
+// ── Relations (lightweight knowledge graph) ────────────────────────────────
+
+export type RelatedEntry = {
+  link_id: number;
+  rel: string;
+  direction: "out" | "in";
+  entry: MemoryEntry;
+};
+
+export async function addLink(
+  fromId: number,
+  toId: number,
+  rel = "relates-to",
+): Promise<boolean> {
+  if (![fromId, toId].every((n) => Number.isInteger(n) && n > 0)) return false;
+  if (fromId === toId) return false;
+  if (!(await ensureSchema())) return false;
+  const r = await query(
+    `INSERT INTO hub_links (from_id, to_id, rel)
+     VALUES ($1, $2, $3)
+     ON CONFLICT (from_id, to_id, rel) DO NOTHING`,
+    [fromId, toId, (rel || "relates-to").trim().slice(0, 60)],
+  );
+  // Success if inserted, or the link already existed (idempotent).
+  return r !== null;
+}
+
+export async function deleteLink(linkId: number): Promise<boolean> {
+  if (!Number.isInteger(linkId) || linkId <= 0) return false;
+  if (!(await ensureSchema())) return false;
+  const r = await query(`DELETE FROM hub_links WHERE id = $1`, [linkId]);
+  return r ? r.rowCount === 1 : false;
+}
+
+export async function linksFor(id: number): Promise<RelatedEntry[] | null> {
+  if (!Number.isInteger(id) || id <= 0) return null;
+  if (!(await ensureSchema())) return null;
+  const r = await query<{
+    link_id: number;
+    rel: string;
+    direction: "out" | "in";
+    id: number;
+    agent: string;
+    kind: string;
+    content: string;
+    pinned: boolean;
+    created_at: string;
+  }>(
+    `SELECT l.id AS link_id, l.rel, 'out' AS direction,
+            m.id, m.agent, m.kind, m.content, m.pinned, m.created_at
+       FROM hub_links l JOIN hub_memory m ON m.id = l.to_id
+      WHERE l.from_id = $1
+      UNION ALL
+     SELECT l.id AS link_id, l.rel, 'in' AS direction,
+            m.id, m.agent, m.kind, m.content, m.pinned, m.created_at
+       FROM hub_links l JOIN hub_memory m ON m.id = l.from_id
+      WHERE l.to_id = $1
+      ORDER BY created_at DESC`,
+    [id],
+  );
+  if (r === null) return null;
+  return r.rows.map((row) => ({
+    link_id: row.link_id,
+    rel: row.rel,
+    direction: row.direction,
+    entry: {
+      id: row.id,
+      agent: row.agent,
+      kind: row.kind,
+      content: row.content,
+      pinned: row.pinned,
+      created_at: row.created_at,
+    },
+  }));
 }
 
 export type MemoryStats = {

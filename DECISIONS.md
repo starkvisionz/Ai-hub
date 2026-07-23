@@ -13,6 +13,17 @@ Why:      the reasoning / alternatives rejected
 
 ---
 
+## D-0016 — Relations: a lightweight knowledge graph over the brain   (2026-07-23, status: accepted)
+**Context:** Entries were isolated; agents want to connect related context
+(follow-ups, causes, duplicates).
+**Decision:** Add a `hub_links` table (directed, labelled edges with
+`ON DELETE CASCADE`, `UNIQUE(from_id,to_id,rel)`, `CHECK(from_id<>to_id)`),
+`/api/links` (GET/POST/DELETE), and a `/brain/[id]` detail page to view/add/remove
+links. Relations are surfaced bidirectionally (in/out).
+**Why:** Turns the flat log into a small graph without heavy graph infra; FK
+cascade keeps it consistent when entries are deleted. Verified E2E against local
+Postgres (link create/list/delete + cascade) and via HTTP smoke test.
+
 ## D-0015 — Live-DB E2E test in CI; parse int8 ids as numbers   (2026-07-23, status: accepted)
 **Context:** All brain DB paths had only been exercised against the graceful
 no-DB branches (no Docker in the dev sandbox). Running the real code against a
@@ -155,4 +166,4 @@ docs and reality stay together.
 
 ---
 
-_Add the next decision above this line as `D-0016`._
+_Add the next decision above this line as `D-0017`._

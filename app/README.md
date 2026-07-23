@@ -39,8 +39,12 @@ renders. Set these in Coolify (point URLs at your Tailscale hostname):
   every ~20s (pauses when the tab is hidden). Rendered per request.
 - `/brain` — full brain browser: search across content/agent/kind, **kind and
   agent filter chips** (with counts), a **pinned-only** toggle, **pagination**,
-  **inline pin / edit / delete** per entry, **export** + **feed** links, plus the
-  write box. Pinned entries float to the top. Auto-refreshes every ~30s.
+  **inline pin / edit / delete** per entry, a **#id permalink**, **export** +
+  **feed** links, plus the write box. Pinned entries float to the top.
+  Auto-refreshes every ~30s.
+- `/brain/[id]` — entry detail + **relations**: shows the entry and its linked
+  entries (in/out, by relation), with a form to link another entry by id and a
+  remove-link control.
 - `/api/health` — JSON liveness probe (`{ status: "ok", ... }`). Left open even
   when Basic Auth is on, so Docker/Coolify healthchecks work.
 - `/api/memory` — the shared brain.
@@ -57,6 +61,10 @@ renders. Set these in Coolify (point URLs at your Tailscale hostname):
   as JSON or CSV (with a `Content-Disposition` attachment).
 - `/api/feed?format=json|rss&kind=&agent=` → recent context as a subscribable
   feed (JSON Feed 1.1 or RSS 2.0) for external readers.
+- `/api/links` — relations between entries.
+  - `GET /api/links?id=123` → related entries (both directions).
+  - `POST /api/links` `{ from_id, to_id, rel? }` → create a link (201).
+  - `DELETE /api/links?link_id=123` → remove a link.
 
 ## Shared brain (Postgres)
 

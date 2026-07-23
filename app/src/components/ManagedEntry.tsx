@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { MemoryEntry } from "@/lib/memory";
 import { timeAgo } from "@/lib/time";
@@ -86,7 +87,14 @@ export function ManagedEntry({ entry }: { entry: MemoryEntry }) {
             {entry.kind}
           </span>
         )}
-        <span className="ml-auto">{timeAgo(entry.created_at)}</span>
+        <Link
+          href={`/brain/${entry.id}`}
+          className="ml-auto text-slate-400 hover:text-slate-600 hover:underline dark:hover:text-slate-300"
+          title="Open entry & links"
+        >
+          #{entry.id}
+        </Link>
+        <span>{timeAgo(entry.created_at)}</span>
         {editing ? (
           <>
             <button

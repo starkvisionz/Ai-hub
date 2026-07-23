@@ -51,6 +51,12 @@ docker compose config -q                 # stack validates
 
 ## Recently done
 
+- **2026-07-23** — Added **relations / knowledge graph** (PR #1): `hub_links`
+  table (directed, labelled, `ON DELETE CASCADE`, unique, no self-link);
+  `/api/links` (GET/POST/DELETE); a `/brain/[id]` detail page to view/add/remove
+  links (bidirectional) + `#id` permalinks from the list. E2E extended (link
+  create/list/delete + cascade) — **verified green against local Postgres 16**,
+  plus an HTTP smoke test of the links API + detail page. Decision D-0016.
 - **2026-07-23** — Added a **live-DB E2E test** (PR #1) and **fixed a real bug**
   it caught: `pg` returned BIGSERIAL ids as strings, so edit/delete/pin were
   silent no-ops (`Number.isInteger` guard). Fixed via an int8→number type parser
