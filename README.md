@@ -38,11 +38,27 @@ facts and re-litigates the same decisions. This hub keeps the durable context
 
 | File / dir | Role |
 |------------|------|
-| [`docker-compose.yml`](./docker-compose.yml) | The hub service stack (code-server, postgres/pgvector, memory MCP, future app). Runnable directly or importable by Coolify. |
+| [`docker-compose.yml`](./docker-compose.yml) | The hub service stack: code-server, postgres/pgvector, **n8n**, **Homepage**, **restic** backups, + commented GPU-only Ollama/Hermes and future app. Runnable directly or importable by Coolify. |
 | [`.mcp.json`](./.mcp.json) | Shared MCP connectors every Claude Code session auto-loads (filesystem, memory, github, postgres). |
 | [`.env.example`](./.env.example) | Names of required env vars (no values). Copy to `.env` (git-ignored). |
-| [`SETUP.md`](./SETUP.md) | Ubuntu VPS → Coolify → running stack, step by step. |
+| [`SETUP.md`](./SETUP.md) | Ubuntu VPS → Tailscale → Coolify → running stack, step by step. |
+| [`scripts/bootstrap-vps.sh`](./scripts/bootstrap-vps.sh) | One-shot host bootstrap (base + Tailscale + Coolify). Run **on the VPS**. |
+| [`homepage/`](./homepage/) | Homepage dashboard config (YAML) tiling the hub services. |
 | [`workspace/`](./workspace/) | Shared filesystem mounted into services (`repos/`, `shared/`, `scratch/`). |
+
+### Service stack at a glance
+
+| Service | Role | State |
+|---------|------|-------|
+| Coolify | Control panel | host install |
+| code-server | Browser IDE + terminal | active |
+| postgres/pgvector | Shared memory brain | active |
+| n8n | Automation backbone | active |
+| Homepage | Service dashboard | active |
+| restic-backup | Off-site encrypted backups | active |
+| Ollama / Hermes | Local LLM | **off — GPU only** |
+| Forgejo | Self-hosted Git forge | deferred |
+| hub app | Next.js dashboard/API | future |
 
 ## Quickstart
 

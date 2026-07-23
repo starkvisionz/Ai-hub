@@ -1,0 +1,12 @@
+# Homepage bookmarks. Docs: https://gethomepage.dev/configs/bookmarks/
+- Hub:
+    - Repo:
+        - abbr: GH
+          href: https://github.com/starkvisionz/Ai-hub
+- Docs:
+    - Coolify:
+        - abbr: CF
+          href: https://coolify.io/docs
+    - Homepage:
+        - abbr: HP
+          href: https://gethomepage.dev

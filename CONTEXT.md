@@ -33,12 +33,17 @@ A self-hosted multi-AI workspace hub. Two layers:
                         │  │ Docker services:                │ │
                         │  │  • code-server (IDE + terminal) │ │
                         │  │  • postgres/pgvector (brain DB) │ │
+                        │  │  • n8n (automation backbone)    │ │
+                        │  │  • Homepage (dashboard)         │ │
+                        │  │  • restic-backup (off-site)     │ │
                         │  │  • MCP servers (connectors)     │ │
+                        │  │  • Ollama/Hermes (GPU, off)     │ │
                         │  │  • hub app (Next.js, future)    │ │
                         │  └─────────────────────────────────┘ │
                         │  Shared volume: /workspace           │
                         └──────────────────────────────────────┘
         Access is gated behind Tailscale / SSH tunnel — never public.
+        restic-backup ships encrypted snapshots off-site (B2 / S3).
 ```
 
 ## Where things live
@@ -61,17 +66,35 @@ Different AI sessions stay coordinated two ways:
 2. **Memory MCP + Postgres** — a running memory service so sessions can read/write
    accumulated context (facts, embeddings) beyond what's in Git.
 
+## Service stack (see `docker-compose.yml`; rationale in `DECISIONS.md`)
+
+| Service | Role | State |
+|---------|------|-------|
+| Coolify | Control panel (supervises Docker) | Host install |
+| code-server | Browser IDE + terminal | Active |
+| postgres/pgvector | Shared memory brain | Active |
+| n8n | Automation: webhooks, schedules, agent triggers | Active |
+| Homepage | YAML-config service dashboard (`./homepage/`) | Active |
+| restic-backup | Off-site encrypted backups (B2/S3) | Active |
+| Ollama / Hermes | Local LLM | **Off — GPU only** |
+| Forgejo | Self-hosted Git forge | Deferred (Phase 2) |
+| hub app | Next.js dashboard/API | Future |
+
 ## Environment assumptions
 
 - **VPS OS:** Ubuntu (LTS). Adjust in [`SETUP.md`](./SETUP.md) if different.
+- **VPS host:** stored as `VPS_HOST` in `.env` (git-ignored) — not committed, to
+  avoid advertising the box publicly.
 - **Control panel:** Coolify (self-hosted, Docker-based).
-- **Access:** Tailscale or SSH tunnel in front of Coolify + code-server.
+- **Access:** Tailscale (mesh VPN) in front of Coolify + code-server; Cloudflare
+  Tunnel only for any deliberately public service.
 
 ## Open unknowns (fill in as decided)
 
-- [ ] VPS provider, region, and specs — _TBD_
+- [ ] **Does the VPS have a GPU?** — decides whether Hermes/Ollama is enabled.
+- [ ] VPS provider, region, and specs — _host IP known, kept in `.env`_
 - [ ] Domain(s) for services — _TBD_
-- [ ] Which MCP connectors are containerized (remote) vs. per-session (stdio) — _see `.mcp.json`_
+- [ ] Restic backend + off-site bucket (B2 vs S3) — _TBD_
 - [ ] Which projects the hub coordinates first — _TBD, list under `workspace/repos/`_
 
 ---

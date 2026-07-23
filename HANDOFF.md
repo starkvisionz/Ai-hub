@@ -7,21 +7,32 @@
 
 ## Current status
 
-**Phase 0 — Foundation.** Scaffolding the hub: context docs + Coolify/Docker
-infra definition. Nothing is deployed yet; the compose stack is defined but not
-running on a VPS.
+**Phase 0 — Foundation.** Context docs + full Coolify/Docker stack **defined**
+(code-server, postgres/pgvector, n8n, Homepage, restic; Ollama/Hermes commented
+GPU-only). Nothing is **deployed** yet. VPS is provisioned (host IP known, kept
+in `.env`, not committed). Open PR: **#1**.
+
+## Blocking question
+
+- **Does the VPS (`89.116.49.20`) have a GPU?** Decides whether Hermes/Ollama is
+  enabled. Until answered, Ollama stays commented out in `docker-compose.yml`.
 
 ## Next up (pick from here)
 
-1. **Provision the VPS** and install Coolify — follow [`SETUP.md`](./SETUP.md).
-2. **Fill the unknowns** in [`CONTEXT.md`](./CONTEXT.md) (provider, domains).
-3. **Import `docker-compose.yml`** into Coolify as a resource; wire persistent
-   storage to `workspace/`.
-4. **Set real env vars** in Coolify (names in `.env.example`); never commit them.
-5. **Decide the first project(s)** the hub coordinates → clone under
+1. **On the VPS**, run [`scripts/bootstrap-vps.sh`](./scripts/bootstrap-vps.sh)
+   (base hardening + Tailscale + Coolify). Deploy must run *on the box*, not from
+   a dev sandbox.
+2. **Rotate** any password shared in chat; switch to SSH keys; set
+   `PermitRootLogin prohibit-password`.
+3. **`tailscale up`** to join the tailnet; reach Coolify at `<tailscale-ip>:8000`.
+4. **Import `docker-compose.yml`** into Coolify; map Persistent Storage
+   (`postgres-data`, `./workspace`).
+5. **Set real env vars** in Coolify (names in `.env.example`) — n8n key, restic
+   repo + password + B2/S3 creds, etc. Never commit them.
+6. **Pick a restic backend** (Backblaze B2 vs S3) and create the bucket.
+7. **Decide the first project(s)** the hub coordinates → clone under
    `workspace/repos/`.
-6. *(Later)* Scaffold the `hub app` (Next.js dashboard/API) and add its commands
-   to [`CLAUDE.md`](./CLAUDE.md).
+8. *(Later)* Forgejo (if Git sovereignty wanted), then the `hub app` (Next.js).
 
 ## In flight
 
@@ -29,12 +40,18 @@ running on a VPS.
 
 ## Recently done
 
+- **2026-07-23** — Expanded the stack (PR #1): added **n8n**, **Homepage**
+  (config in `homepage/`), and a **restic** off-site backup service to
+  `docker-compose.yml`; added a GPU-conditional (commented) **Ollama/Hermes**
+  service. New env var names in `.env.example`. `scripts/bootstrap-vps.sh` for
+  host setup. Component decisions recorded as **D-0005…D-0011**. Docs synced
+  (`README`, `CONTEXT`, this file).
 - **2026-07-23** — Established the hub foundation on branch
   `claude/multi-ai-workspace-hub-dprjrl`:
   - Core context docs: `README`, `PROJECT`, `AGENTS`, `CLAUDE`, `CONTEXT`,
     `HANDOFF`, `DECISIONS`.
-  - Infra scaffold: `docker-compose.yml` (code-server, postgres/pgvector,
-    memory MCP, optional hub app), `.mcp.json`, `.env.example`, `.gitignore`.
+  - Infra scaffold: `docker-compose.yml`, `.mcp.json`, `.env.example`,
+    `.gitignore`.
   - `SETUP.md` — Coolify-on-Ubuntu install + stack import walkthrough.
   - `workspace/` shared-folder tree.
 

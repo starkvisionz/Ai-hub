@@ -51,6 +51,67 @@ services:
       timeout: 5s
       retries: 5
 
+  # ── n8n: automation backbone (webhooks, schedules, agent triggers) ─────────
+  n8n:
+    image: docker.n8n.io/n8nio/n8n:latest
+    container_name: ai-hub-n8n
+    restart: unless-stopped
+    environment:
+      # Encrypts stored credentials — set a long random value in .env / Coolify.
+      N8N_ENCRYPTION_KEY: ${N8N_ENCRYPTION_KEY:?set N8N_ENCRYPTION_KEY in .env}
+      # Public URL n8n builds webhook links from (reach it via Tailscale/proxy).
+      N8N_HOST: ${N8N_HOST:-localhost}
+      N8N_PORT: "5678"
+      N8N_PROTOCOL: ${N8N_PROTOCOL:-http}
+      WEBHOOK_URL: ${N8N_WEBHOOK_URL:-http://localhost:5678/}
+      GENERIC_TIMEZONE: ${TZ:-UTC}
+    volumes:
+      - n8n-data:/home/node/.n8n
+    ports:
+      - "127.0.0.1:5678:5678"
+
+  # ── Homepage: YAML-configured service dashboard (config lives in ./homepage)─
+  homepage:
+    image: ghcr.io/gethomepage/homepage:latest
+    container_name: ai-hub-homepage
+    restart: unless-stopped
+    environment:
+      # Recent Homepage requires an allow-list of hosts it will serve.
+      HOMEPAGE_ALLOWED_HOSTS: ${HOMEPAGE_ALLOWED_HOSTS:-localhost:3001}
+    volumes:
+      - ./homepage:/app/config
+      # Optional: read-only Docker socket enables auto-discovery widgets.
+      # Security trade-off — exposes container metadata to Homepage. Enable only
+      # if you want the Docker widgets:
+      # - /var/run/docker.sock:/var/run/docker.sock:ro
+    ports:
+      - "127.0.0.1:3001:3000"
+
+  # ── Restic: scheduled, encrypted, off-site backups of the hub's volumes ────
+  # Backs up the Postgres brain + shared workspace to an off-site repo
+  # (Backblaze B2 / S3) on a cron schedule. RESTIC_* secrets come from .env.
+  restic-backup:
+    image: mazzolino/restic:latest
+    container_name: ai-hub-restic
+    restart: unless-stopped
+    hostname: ai-hub
+    environment:
+      RUN_ON_STARTUP: "false"
+      BACKUP_CRON: ${RESTIC_BACKUP_CRON:-0 3 * * *}      # daily at 03:00
+      RESTIC_REPOSITORY: ${RESTIC_REPOSITORY:?set RESTIC_REPOSITORY in .env}
+      RESTIC_PASSWORD: ${RESTIC_PASSWORD:?set RESTIC_PASSWORD in .env}
+      # Provider creds (e.g. Backblaze B2 / S3) — set the ones your repo needs:
+      AWS_ACCESS_KEY_ID: ${RESTIC_AWS_ACCESS_KEY_ID:-}
+      AWS_SECRET_ACCESS_KEY: ${RESTIC_AWS_SECRET_ACCESS_KEY:-}
+      B2_ACCOUNT_ID: ${RESTIC_B2_ACCOUNT_ID:-}
+      B2_ACCOUNT_KEY: ${RESTIC_B2_ACCOUNT_KEY:-}
+      RESTIC_BACKUP_SOURCES: /data
+      RESTIC_FORGET_ARGS: --keep-daily 7 --keep-weekly 4 --keep-monthly 6 --prune
+    volumes:
+      - postgres-data:/data/postgres:ro
+      - ./workspace:/data/workspace:ro
+      - restic-cache:/root/.cache/restic
+
   # ── Memory MCP server (optional, remote/HTTP flavor) ───────────────────────
   # Most MCP connectors run per-session over stdio via .mcp.json (see D-0003).
   # This service is here for a *shared, always-on* memory endpoint that multiple
@@ -69,6 +130,28 @@ services:
   #       condition: service_healthy
   #   ports:
   #     - "127.0.0.1:9100:9100"
+
+  # ── Hermes (local LLM) via Ollama — GPU-CONDITIONAL, disabled by default ───
+  # A private, no-API-cost model alongside Claude. Uncomment ONLY if the host
+  # has a GPU (CPU inference is too slow to be useful). After first boot:
+  #   docker exec -it ai-hub-ollama ollama pull hermes3
+  # Then point clients at http://ollama:11434 (OpenAI-compatible endpoint).
+  #
+  # ollama:
+  #   image: ollama/ollama:latest
+  #   container_name: ai-hub-ollama
+  #   restart: unless-stopped
+  #   volumes:
+  #     - ollama-models:/root/.ollama
+  #   ports:
+  #     - "127.0.0.1:11434:11434"
+  #   deploy:
+  #     resources:
+  #       reservations:
+  #         devices:
+  #           - driver: nvidia
+  #             count: all
+  #             capabilities: [gpu]
 
   # ── Hub app (future): Next.js dashboard / API surface ──────────────────────
   # Uncomment once the app exists under ./app. Coolify can auto-redeploy this
@@ -89,3 +172,6 @@ services:
 volumes:
   postgres-data:
   code-server-config:
+  n8n-data:
+  restic-cache:
+  # ollama-models:   # uncomment together with the ollama service (GPU only)
