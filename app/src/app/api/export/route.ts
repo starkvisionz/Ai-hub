@@ -8,9 +8,13 @@ export const dynamic = "force-dynamic";
 // shared brain. Handy for backups, migrations, or feeding another tool.
 
 function csvField(v: string): string {
+  let s = v;
+  // Guard against CSV/formula injection: a leading =, +, -, @, tab or CR makes
+  // spreadsheet apps treat the cell as a formula. Neutralize with a leading '.
+  if (/^[=+\-@\t\r]/.test(s)) s = `'${s}`;
   // Quote and escape per RFC 4180 when needed.
-  if (/[",\n\r]/.test(v)) return `"${v.replace(/"/g, '""')}"`;
-  return v;
+  if (/[",\n\r]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+  return s;
 }
 
 function toCsv(rows: MemoryEntry[]): string {

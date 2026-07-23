@@ -101,7 +101,7 @@ jobs:
           cache-dependency-path: app/package-lock.json
       - run: npm ci
       - run: npm run build
-      - name: Start server and run HTTP tests
+      - name: Start server and run HTTP tests (open)
         env:
           DATABASE_URL: postgres://postgres:ci@localhost:5432/aihub
           PORT: "3000"
@@ -109,5 +109,19 @@ jobs:
         run: |
           node .next/standalone/server.js & echo $! > server.pid
           for i in $(seq 1 30); do curl -sf http://localhost:3000/api/health && break; sleep 1; done
+          npm run test:http
+          kill "$(cat server.pid)" || true
+
+      - name: Start server and run HTTP tests (auth enabled)
+        env:
+          DATABASE_URL: postgres://postgres:ci@localhost:5432/aihub
+          PORT: "3001"
+          BASE_URL: http://localhost:3001
+          HUB_BASIC_AUTH_USER: admin
+          HUB_BASIC_AUTH_PASSWORD: ci-secret
+          HUB_API_TOKEN: ci-token
+        run: |
+          node .next/standalone/server.js & echo $! > server.pid
+          for i in $(seq 1 30); do curl -sf http://localhost:3001/api/health && break; sleep 1; done
           npm run test:http
           kill "$(cat server.pid)" || true

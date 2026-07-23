@@ -13,6 +13,20 @@ Why:      the reasoning / alternatives rejected
 
 ---
 
+## D-0018 — API bearer token alongside Basic Auth; CSV/timing hardening   (2026-07-23, status: accepted)
+**Context:** Code review found that enabling `HUB_BASIC_AUTH_*` 401s the n8n →
+`/api/memory` writes (the shipped workflows sent no credentials) — two features
+in conflict. Also: CSV export was open to spreadsheet formula injection, and auth
+comparisons weren't constant-time.
+**Decision:** Add `HUB_API_TOKEN` — a bearer/`X-Api-Token` gate for `/api/*` that
+works alongside Basic Auth (either passes). n8n workflows now send
+`Authorization: Bearer {{ $env.HUB_API_TOKEN }}`. Guard CSV fields beginning with
+`= + - @ \t \r` by prefixing `'`. Replace auth string compares with a
+length-checked constant-time `safeEqual`.
+**Why:** Lets programmatic clients keep writing while the UI stays gated; closes
+the CSV-injection and timing-leak nits. Verified E2E: the HTTP suite now runs a
+second **auth-enabled** pass in CI (tokenless write → 401, token write → ok).
+
 ## D-0017 — Ranked full-text search (with substring fallback) + link counts   (2026-07-23, status: accepted)
 **Context:** Search was substring-only (unranked); list rows gave no sense of an
 entry's connectivity.
@@ -177,4 +191,4 @@ docs and reality stay together.
 
 ---
 
-_Add the next decision above this line as `D-0018`._
+_Add the next decision above this line as `D-0019`._

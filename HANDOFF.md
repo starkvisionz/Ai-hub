@@ -51,6 +51,13 @@ docker compose config -q                 # stack validates
 
 ## Recently done
 
+- **2026-07-23** — **Fixed code-review findings** (PR #1): (1) added
+  `HUB_API_TOKEN` bearer/`X-Api-Token` gate for `/api/*` so agents/n8n keep
+  writing when Basic Auth is on (workflows now send the header); (2) CSV export
+  formula-injection guard; (3) constant-time auth compares. HTTP suite is now
+  auth-aware and CI runs a second **auth-enabled** pass. All verified against
+  local Postgres 16 (bearer/x-api-token/basic → ok; no/bad token → 401; page
+  open → 401; CSV `=…` neutralized). Decision D-0018.
 - **2026-07-23** — Added **HTTP integration tests** (PR #1): `test/http.mjs`
   drives the real `/api/*` routes over the network (create/search/pin/link/stats/
   export/feed/delete + error cases, 17 assertions); new CI job `http-e2e` builds,

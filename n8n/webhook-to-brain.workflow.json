@@ -18,6 +18,12 @@
       "parameters": {
         "method": "POST",
         "url": "http://hub-app:3000/api/memory",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "=Bearer {{ $env.HUB_API_TOKEN }}" }
+          ]
+        },
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={\n  \"agent\": ($json.body && $json.body.agent) || \"webhook\",\n  \"kind\": ($json.body && $json.body.kind) || \"event\",\n  \"content\": ($json.body && $json.body.content) || JSON.stringify($json.body)\n}",

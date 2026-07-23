@@ -14,6 +14,15 @@ Inside the Docker/Coolify network, services reach each other by **service name**
 not `localhost`. So n8n calls the hub app at `http://hub-app:3000`, Postgres at
 `postgres:5432`, etc. The starter workflow already uses `http://hub-app:3000`.
 
+## Auth note
+
+If the hub app has `HUB_API_TOKEN` set (required when Basic Auth is enabled), the
+brain API rejects unauthenticated writes. The workflows here send
+`Authorization: Bearer {{ $env.HUB_API_TOKEN }}`, so set `HUB_API_TOKEN` in n8n's
+environment (the same value as the app) and ensure n8n allows env access in
+expressions (`N8N_BLOCK_ENV_ACCESS_IN_NODE=false`, the default). When auth is off,
+the header is harmless.
+
 ## Workflows
 
 | File | What it does |

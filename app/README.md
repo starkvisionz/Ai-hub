@@ -77,9 +77,17 @@ it on demand; you can also apply it manually:
 
 ## Auth
 
-Set `HUB_BASIC_AUTH_USER` + `HUB_BASIC_AUTH_PASSWORD` to gate the dashboard behind
-HTTP Basic Auth (see `src/middleware.ts`). Leave unset for frictionless local dev.
-This is a second layer on top of Tailscale, not a replacement for it.
+Two independent, additive gates (both no-ops when unset — see `src/middleware.ts`):
+
+- **`HUB_BASIC_AUTH_USER` + `HUB_BASIC_AUTH_PASSWORD`** — HTTP Basic Auth for the
+  browser UI (and the API).
+- **`HUB_API_TOKEN`** — a bearer token authorizing `/api/*` for programmatic
+  clients. **Set this whenever Basic Auth is on**, otherwise agents and n8n get
+  401 on writes. Clients send `Authorization: Bearer <token>` or
+  `X-Api-Token: <token>` (the shipped n8n workflows already send the header).
+
+`/api/health` stays open for healthchecks. Comparisons are constant-time. This is
+a second layer on top of Tailscale, not a replacement for it.
 
 ## Deploy
 
