@@ -76,18 +76,21 @@ export default async function BrainPage({
     return `/api/export?${params.toString()}`;
   };
 
+  // The feed API filters by kind/agent (not q) — carry what it supports, so
+  // "subscribe to what I'm looking at" works.
+  const feedHref = () => {
+    const params = new URLSearchParams({ format: "json" });
+    if (kindFilter) params.set("kind", kindFilter);
+    if (agentFilter) params.set("agent", agentFilter);
+    return `/api/feed?${params.toString()}`;
+  };
+
   return (
     <main className="mx-auto max-w-3xl px-6 py-12">
       <LiveRefresh seconds={30} />
 
       <header className="mb-6">
-        <Link
-          href="/"
-          className="text-xs text-slate-400 underline hover:text-slate-600 dark:hover:text-slate-300"
-        >
-          ← dashboard
-        </Link>
-        <div className="mt-2 flex items-end justify-between gap-4">
+        <div className="flex items-end justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold tracking-tight">Shared brain</h1>
             <p className="text-sm text-slate-500 dark:text-slate-400">
@@ -109,9 +112,9 @@ export default async function BrainPage({
               CSV
             </a>
             <a
-              href="/api/feed?format=json"
+              href={feedHref()}
               className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-slate-500 hover:border-slate-300 dark:border-slate-700 dark:text-slate-400"
-              title="Recent context as a subscribable feed"
+              title="Recent context as a subscribable feed (carries kind/agent filters)"
             >
               Feed
             </a>

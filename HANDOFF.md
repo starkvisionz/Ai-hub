@@ -7,6 +7,17 @@
 
 ## Recently done (post-merge)
 
+- **2026-07-23** — **Interface slice** (PR #2): persistent top **nav** in the
+  layout; **type-ahead link picker** on `/brain/[id]` (search by content or
+  `#id`); **two-step confirm** for entry/link deletion (undo toast rejected —
+  races LiveRefresh); **detail-page parity** (full ManagedEntry controls,
+  redirect to `/brain` after delete); **feed link carries filters**. Verified:
+  build green; pages render with nav against live Postgres; HTTP suite passes.
+  Decision D-0020. Remaining interface backlog: composer memory + ⌘Enter,
+  keyboard shortcuts, `<time>` tooltips, neighbor mini-graph, manual health
+  refresh, dark-mode toggle/favicon/focus rings, API pagination metadata +
+  error envelope + OpenAPI.
+
 - **2026-07-23** — **PR #1 merged** to `main` (the hub foundation). Started
   **deploy automation** on a fresh branch: `Deploy` workflow
   (`.github/workflows/deploy.yml`) that runs after CI is green on `main` (or
