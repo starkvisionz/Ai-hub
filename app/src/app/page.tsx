@@ -19,20 +19,10 @@ export default async function Home() {
     <main className="mx-auto max-w-5xl px-6 py-12">
       <LiveRefresh seconds={20} />
       <header className="mb-10">
-        <div className="flex items-center gap-3">
-          <span
-            aria-hidden
-            className="grid h-10 w-10 place-items-center rounded-lg bg-slate-900 text-lg font-bold text-white dark:bg-white dark:text-slate-900"
-          >
-            ▲
-          </span>
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">AI Hub</h1>
-            <p className="text-sm text-slate-500 dark:text-slate-400">
-              Control surface for the self-hosted multi-AI workspace.
-            </p>
-          </div>
-        </div>
+        <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
+        <p className="text-sm text-slate-500 dark:text-slate-400">
+          Control surface for the self-hosted multi-AI workspace.
+        </p>
         <p className="mt-4 text-sm text-slate-500 dark:text-slate-400">
           {upCount}/{activeCount} active services reachable · Claude is the
           primary model · access gated behind Tailscale.

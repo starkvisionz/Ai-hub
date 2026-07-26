@@ -38,14 +38,18 @@ renders. Set these in Coolify (point URLs at your Tailscale hostname):
 - `/` — live service dashboard: health-probes each active service (server-side,
   short timeout), a write box, and the recent shared-brain feed. Auto-refreshes
   every ~20s (pauses when the tab is hidden). Rendered per request.
+All pages share a persistent top nav (Dashboard · Brain · health). Destructive
+actions (entry delete, link removal) use a two-step confirm that auto-reverts.
+
 - `/brain` — full brain browser: search across content/agent/kind, **kind and
   agent filter chips** (with counts), a **pinned-only** toggle, **pagination**,
   **inline pin / edit / delete** per entry, a **#id permalink**, **export** +
-  **feed** links, plus the write box. Pinned entries float to the top.
-  Auto-refreshes every ~30s.
-- `/brain/[id]` — entry detail + **relations**: shows the entry and its linked
-  entries (in/out, by relation), with a form to link another entry by id and a
-  remove-link control.
+  **feed** links (all carrying the active filters), plus the write box. Pinned
+  entries float to the top. Auto-refreshes every ~30s.
+- `/brain/[id]` — entry detail + **relations**: the same pin/copy/edit/delete
+  controls as the list (deleting redirects back to `/brain`), linked entries
+  (in/out, by relation), and a **type-ahead link picker** — search entries by
+  content (or type `#id`) to create a link; remove links inline.
 - `/api/health` — JSON liveness probe (`{ status: "ok", ... }`). Left open even
   when Basic Auth is on, so Docker/Coolify healthchecks work.
 - `/api/memory` — the shared brain.

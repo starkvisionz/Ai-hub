@@ -1,0 +1,61 @@
+name: Deploy
+
+# Triggers a Coolify redeploy AFTER CI passes on main, or on manual dispatch.
+# Safe by default: if the Coolify secrets aren't configured, the job no-ops
+# (so forks / pre-setup repos aren't broken). See DEPLOY.md for setup.
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      force:
+        description: "Force a rebuild (ignore cache)"
+        type: boolean
+        default: false
+
+concurrency:
+  group: deploy-main
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy to Coolify
+    runs-on: ubuntu-latest
+    # Only proceed when CI succeeded (workflow_run) or when run manually.
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.event.workflow_run.conclusion == 'success'
+    env:
+      TS_AUTHKEY: ${{ secrets.TS_AUTHKEY }}
+      COOLIFY_URL: ${{ secrets.COOLIFY_URL }}
+      COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
+      COOLIFY_RESOURCE_UUIDS: ${{ secrets.COOLIFY_RESOURCE_UUIDS }}
+      COOLIFY_FORCE: ${{ github.event.inputs.force || 'false' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Preflight — are deploy secrets configured?
+        id: preflight
+        run: |
+          if [ -z "$COOLIFY_URL" ] || [ -z "$COOLIFY_TOKEN" ] || [ -z "$COOLIFY_RESOURCE_UUIDS" ]; then
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Coolify deploy secrets not set — skipping deploy. See DEPLOY.md."
+          else
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      # Coolify is private (Tailscale-only). Join the tailnet to reach it.
+      # Skipped when no auth key is set (e.g. Coolify reachable another way).
+      - name: Connect Tailscale
+        if: steps.preflight.outputs.configured == 'true' && env.TS_AUTHKEY != ''
+        uses: tailscale/github-action@v2
+        with:
+          authkey: ${{ secrets.TS_AUTHKEY }}
+          version: latest
+
+      - name: Trigger Coolify deploy
+        if: steps.preflight.outputs.configured == 'true'
+        run: bash scripts/deploy.sh

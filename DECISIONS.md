@@ -191,4 +191,30 @@ docs and reality stay together.
 
 ---
 
-_Add the next decision above this line as `D-0019`._
+## D-0019 — CI-gated deploy automation via Coolify's API   (2026-07-23, status: accepted)
+**Context:** Changes on `main` should reach the running hub without manual steps,
+but ideally only *after* CI passes, and without exposing Coolify publicly.
+**Decision:** Add a `Deploy` GitHub Actions workflow that runs on
+`workflow_run` after `CI` succeeds on `main` (or manual dispatch), joins the
+tailnet via a Tailscale auth key, and calls Coolify's `/api/v1/deploy` API through
+a portable `scripts/deploy.sh`. It **no-ops until the Coolify/Tailscale secrets
+are set**. Documented both this path and Coolify-native auto-deploy in `DEPLOY.md`.
+**Why:** "green tests → deploy" beats deploy-on-any-push; reaching Coolify over
+Tailscale keeps it off the public net; secrets stay in GitHub Actions, never the
+repo. The script is also runnable by hand. Verified: deploy.sh happy/rejection/
+missing-env paths against a mock endpoint; both workflow YAMLs validate.
+
+## D-0020 — Interface slice: nav, link picker, confirm-delete over undo   (2026-07-23, status: accepted)
+**Context:** Interface review flagged: no shared navigation; linking required
+knowing numeric ids; one-click irreversible deletes; the detail page lacked the
+list's controls; the feed link dropped active filters.
+**Decision:** Add a persistent top nav (layout-level); replace the id input with
+a type-ahead **link picker** backed by ranked search (`#id` still works); use a
+**two-step confirm** (auto-reverts in 4s) for entry/link deletion — an undo toast
+was rejected because it races the pages' periodic `router.refresh()`; reuse
+`ManagedEntry` on `/brain/[id]` with redirect-after-delete; carry kind/agent
+filters into the feed link.
+**Why:** Closes the top five UX gaps at minimal code cost. Verified: build green,
+pages render with nav against live Postgres, HTTP suite passes unchanged.
+
+_Add the next decision above this line as `D-0021`._

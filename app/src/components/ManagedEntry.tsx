@@ -1,19 +1,37 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { MemoryEntry } from "@/lib/memory";
 import { timeAgo } from "@/lib/time";
 
-// A shared-brain entry with inline edit + delete. Used on /brain (manageable).
-export function ManagedEntry({ entry }: { entry: MemoryEntry }) {
+// A shared-brain entry with inline pin / copy / edit / delete. Used on /brain
+// list rows and the /brain/[id] detail page (pass redirectAfterDelete there so
+// deleting doesn't strand the user on a dead permalink).
+export function ManagedEntry({
+  entry,
+  redirectAfterDelete,
+}: {
+  entry: MemoryEntry;
+  redirectAfterDelete?: string;
+}) {
   const router = useRouter();
   const [editing, setEditing] = useState(false);
   const [content, setContent] = useState(entry.content);
   const [kind, setKind] = useState(entry.kind);
   const [busy, setBusy] = useState(false);
   const [copied, setCopied] = useState(false);
+  // Two-step delete guard (auto-reverts). An undo toast would race the pages'
+  // periodic router.refresh(), so confirm-before-delete is the sturdier UX here.
+  const [confirming, setConfirming] = useState(false);
+  const confirmTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(
+    () => () => {
+      if (confirmTimer.current) clearTimeout(confirmTimer.current);
+    },
+    [],
+  );
 
   async function copyMarkdown() {
     const md = `- **${entry.agent}** _(${entry.kind})_: ${entry.content}`;
@@ -59,14 +77,28 @@ export function ManagedEntry({ entry }: { entry: MemoryEntry }) {
     }
   }
 
+  function requestDelete() {
+    if (!confirming) {
+      setConfirming(true);
+      confirmTimer.current = setTimeout(() => setConfirming(false), 4000);
+      return;
+    }
+    if (confirmTimer.current) clearTimeout(confirmTimer.current);
+    void remove();
+  }
+
   async function remove() {
     if (busy) return;
     setBusy(true);
     try {
       const res = await fetch(`/api/memory?id=${entry.id}`, { method: "DELETE" });
-      if (res.ok) router.refresh();
+      if (res.ok) {
+        if (redirectAfterDelete) router.push(redirectAfterDelete);
+        else router.refresh();
+      }
     } finally {
       setBusy(false);
+      setConfirming(false);
     }
   }
 
@@ -162,13 +194,17 @@ export function ManagedEntry({ entry }: { entry: MemoryEntry }) {
             </button>
             <button
               type="button"
-              onClick={remove}
+              onClick={requestDelete}
               disabled={busy}
-              className="rounded px-1 text-slate-300 hover:text-rose-500 disabled:opacity-40 dark:text-slate-600 dark:hover:text-rose-400"
-              aria-label="Delete entry"
-              title="Delete entry"
+              className={`rounded px-1 disabled:opacity-40 ${
+                confirming
+                  ? "font-medium text-rose-500"
+                  : "text-slate-300 hover:text-rose-500 dark:text-slate-600 dark:hover:text-rose-400"
+              }`}
+              aria-label={confirming ? "Confirm delete" : "Delete entry"}
+              title={confirming ? "Click again to delete" : "Delete entry"}
             >
-              ×
+              {confirming ? "delete?" : "×"}
             </button>
           </>
         )}

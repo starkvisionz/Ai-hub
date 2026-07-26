@@ -1,9 +1,9 @@
 import Link from "next/link";
 import { getMemory, linksFor } from "@/lib/memory";
 import { LinkComposer } from "@/components/LinkComposer";
+import { ManagedEntry } from "@/components/ManagedEntry";
 import { RemoveLinkButton } from "@/components/RemoveLinkButton";
 import { LiveRefresh } from "@/components/LiveRefresh";
-import { timeAgo } from "@/lib/time";
 
 export const dynamic = "force-dynamic";
 
@@ -24,36 +24,21 @@ export default async function EntryPage({
     <main className="mx-auto max-w-3xl px-6 py-12">
       <LiveRefresh seconds={30} />
 
-      <Link
-        href="/brain"
-        className="text-xs text-slate-400 underline hover:text-slate-600 dark:hover:text-slate-300"
-      >
-        ← shared brain
-      </Link>
-
       {entry === null ? (
         <p className="mt-6 text-sm text-slate-500 dark:text-slate-400">
-          Entry not found (or no database connected).
+          Entry not found (or no database connected).{" "}
+          <Link href="/brain" className="underline">
+            Back to the brain
+          </Link>
+          .
         </p>
       ) : (
         <>
-          <article className="mt-3 rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
-            <div className="flex items-center gap-2 text-xs text-slate-400">
-              {entry.pinned && <span className="text-amber-500">★</span>}
-              <span className="rounded bg-slate-100 px-1.5 py-0.5 font-mono dark:bg-slate-800">
-                {entry.agent}
-              </span>
-              <span className="rounded bg-slate-100 px-1.5 py-0.5 dark:bg-slate-800">
-                {entry.kind}
-              </span>
-              <span className="ml-auto">
-                #{entry.id} · {timeAgo(entry.created_at)}
-              </span>
-            </div>
-            <p className="mt-2 whitespace-pre-wrap text-sm text-slate-700 dark:text-slate-300">
-              {entry.content}
-            </p>
-          </article>
+          {/* Same controls as the list rows (pin/copy/edit/delete) — deleting
+              here redirects to /brain instead of stranding a dead permalink. */}
+          <ul className="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
+            <ManagedEntry entry={entry} redirectAfterDelete="/brain" />
+          </ul>
 
           <section className="mt-6">
             <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-400">
