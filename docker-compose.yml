@@ -26,9 +26,10 @@ services:
       - ./workspace:/home/coder/workspace          # shared filesystem
       - code-server-config:/home/coder/.config     # IDE settings persist
     ports:
-      # Bind to loopback only; reach it via SSH tunnel / Tailscale, or let
-      # Coolify's reverse proxy terminate TLS in front of it.
-      - "127.0.0.1:8080:8080"
+      # Published on ${BIND_ADDR} (default: loopback). For the Compose-only /
+      # no-Coolify deployment, set BIND_ADDR to the host's Tailscale IP in .env
+      # so services are reachable tailnet-wide but never on the public interface.
+      - "${BIND_ADDR:-127.0.0.1}:8080:8080"
     depends_on:
       - postgres
 
@@ -44,7 +45,7 @@ services:
     volumes:
       - postgres-data:/var/lib/postgresql/data
     ports:
-      - "127.0.0.1:5432:5432"
+      - "${BIND_ADDR:-127.0.0.1}:5432:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-aihub}"]
       interval: 10s
@@ -68,7 +69,7 @@ services:
     volumes:
       - n8n-data:/home/node/.n8n
     ports:
-      - "127.0.0.1:5678:5678"
+      - "${BIND_ADDR:-127.0.0.1}:5678:5678"
 
   # ── Homepage: YAML-configured service dashboard (config lives in ./homepage)─
   homepage:
@@ -85,7 +86,7 @@ services:
       # if you want the Docker widgets:
       # - /var/run/docker.sock:/var/run/docker.sock:ro
     ports:
-      - "127.0.0.1:3001:3000"
+      - "${BIND_ADDR:-127.0.0.1}:3001:3000"
 
   # ── Restic: scheduled, encrypted, off-site backups of the hub's volumes ────
   # Backs up the Postgres brain + shared workspace to an off-site repo
@@ -129,7 +130,7 @@ services:
   #     postgres:
   #       condition: service_healthy
   #   ports:
-  #     - "127.0.0.1:9100:9100"
+  #     - "${BIND_ADDR:-127.0.0.1}:9100:9100"
 
   # ── Hermes (local LLM) via Ollama — GPU-CONDITIONAL, disabled by default ───
   # A private, no-API-cost model alongside Claude. Uncomment ONLY if the host
@@ -144,7 +145,7 @@ services:
   #   volumes:
   #     - ollama-models:/root/.ollama
   #   ports:
-  #     - "127.0.0.1:11434:11434"
+  #     - "${BIND_ADDR:-127.0.0.1}:11434:11434"
   #   deploy:
   #     resources:
   #       reservations:
@@ -177,7 +178,7 @@ services:
       postgres:
         condition: service_healthy
     ports:
-      - "127.0.0.1:3000:3000"
+      - "${BIND_ADDR:-127.0.0.1}:3000:3000"
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:3000/api/health || exit 1"]
       interval: 30s

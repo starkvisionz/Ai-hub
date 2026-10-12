@@ -1,5 +1,10 @@
 # DEPLOY.md — Deploying the AI Hub
 
+> **Current mode: Compose-only (no Coolify)** — see
+> [§C. Compose-only deploys](#c-compose-only-deploys-no-coolify--current-mode).
+> Paths A and B below assume Coolify and are kept for reference; the `Deploy`
+> GitHub workflow stays dormant (its secrets unset) in this mode.
+
 Once the stack is set up on the VPS (see [`SETUP.md`](./SETUP.md)), you want
 changes on `main` to reach the running hub automatically. There are two paths —
 pick one. They're not mutually exclusive, but running both just double-deploys.
@@ -74,6 +79,32 @@ export COOLIFY_RESOURCE_UUIDS="<uuid>[,<uuid>…]"
 # export COOLIFY_FORCE=true   # optional: ignore build cache
 bash scripts/deploy.sh
 ```
+
+## C. Compose-only deploys (no Coolify) — current mode
+
+The box runs the stack straight from `docker-compose.yml`
+(SETUP.md §Go live without Coolify). Deploys are
+[`scripts/deploy-compose.sh`](./scripts/deploy-compose.sh) **run on the box**:
+it hard-resets the checkout to `origin/main`, rebuilds changed images
+(`docker compose up -d --build --remove-orphans`), prunes, and **gates on the
+hub app's container healthcheck** — non-zero exit with logs if it doesn't come
+back healthy.
+
+Ways to run it:
+
+- **Manual** (after merging to `main`): `bash /opt/ai-hub/scripts/deploy-compose.sh`
+  over SSH / the hPanel browser terminal / code-server's terminal.
+- **Cron** (poll-based auto-deploy): `sudo crontab -e` →
+  `*/10 * * * * /usr/bin/bash /opt/ai-hub/scripts/deploy-compose.sh >> /var/log/ai-hub-deploy.log 2>&1`
+  — note this deploys any `main` commit, green or not; keep `main` protected by CI.
+- **n8n-triggered** (push-based): point a GitHub `push` webhook at an n8n
+  workflow that runs the script via an SSH/Execute node — event-driven without
+  opening any new ports.
+
+Rollback: `cd /opt/ai-hub && git reset --hard <good-sha> && docker compose up -d --build`
+(data lives in volumes and is untouched). Caveat: the box tracks `main`, so the
+next deploy-compose run moves it forward again — revert the bad commit on `main`
+for a durable rollback.
 
 ## Security notes
 
