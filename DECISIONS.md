@@ -217,4 +217,19 @@ filters into the feed link.
 **Why:** Closes the top five UX gaps at minimal code cost. Verified: build green,
 pages render with nav against live Postgres, HTTP suite passes unchanged.
 
-_Add the next decision above this line as `D-0021`._
+## D-0021 — Go live Compose-only on Hostinger; Coolify dropped   (2026-10-12, status: accepted — amends D-0002)
+**Context:** Time to deploy on the Hostinger KVM2, and the owner chose to go
+live **without Coolify**. D-0002 deliberately kept the compose file portable for
+exactly this case.
+**Decision:** Compose-only deployment: plain Ubuntu + Docker Engine
+(`bootstrap-vps.sh --compose-only`); ports published on a new `BIND_ADDR` env
+(default loopback; set to the host's Tailscale IP in `.env`, never `0.0.0.0`);
+on-box deploys via `scripts/deploy-compose.sh` (hard reset to `origin/main`,
+rebuild, prune, health-gated on the hub-app container). The CI-gated Coolify
+`Deploy` workflow stays dormant; Coolify docs kept as the alternative path.
+**Why:** On an 8 GB KVM2, skipping Coolify saves its own Postgres/Redis/proxy
+(meaningful RAM back) and removes a whole admin surface to secure. The hub app +
+Homepage already provide the panels; restic the backups; the script the deploys.
+Trade-off accepted: no one-click UI deploys/TLS — not needed tailnet-internal.
+
+_Add the next decision above this line as `D-0022`._

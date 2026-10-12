@@ -7,6 +7,16 @@
 
 ## Recently done (post-merge)
 
+- **2026-10-12** — **Compose-only go-live kit** (no Coolify — D-0021): all
+  published ports now bind on `BIND_ADDR` (default loopback; set to the
+  Tailscale IP in `.env`); `bootstrap-vps.sh --compose-only` installs Docker
+  Engine instead of Coolify; new `scripts/deploy-compose.sh` (reset to
+  `origin/main` → rebuild → prune → health-gated); SETUP.md gained the full
+  §Go live without Coolify runbook (Hostinger edition); DEPLOY.md §C documents
+  manual/cron/n8n deploy triggers; CONTEXT synced. The Coolify `Deploy`
+  workflow stays dormant. **Next: run the runbook on the box** (plain Ubuntu →
+  bootstrap → clone → .env with BIND_ADDR → `docker compose up -d --build`).
+
 - **2026-07-23** — **Interface slice** (PR #2): persistent top **nav** in the
   layout; **type-ahead link picker** on `/brain/[id]` (search by content or
   `#id`); **two-step confirm** for entry/link deletion (undo toast rejected —

@@ -8,9 +8,10 @@ How to go from a bare VPS to a running, Coolify-managed hub stack. Target OS is
 > public internet. See [§Security](#security).
 
 > **This hub's target: Hostinger KVM2** (≈2 vCPU / 8 GB RAM / ~100 GB NVMe,
-> Ubuntu). Hostinger-specific shortcuts are called out in
-> [§Hostinger notes](#hostinger-notes) — most importantly, you can install the
-> VPS from Hostinger's **one-click Coolify template**, which skips step 3.
+> Ubuntu), deployed **Compose-only, no Coolify** — jump straight to
+> [§Go live without Coolify](#go-live-without-coolify-compose-only--the-chosen-path).
+> Steps 3–7 below describe the alternative Coolify-managed path, kept for
+> reference; Hostinger specifics live in [§Hostinger notes](#hostinger-notes).
 
 ---
 
@@ -119,11 +120,11 @@ Inside code-server's terminal (or any Claude Code session on the host):
 
 This hub targets a **Hostinger KVM2** VPS. Hostinger-specific tips:
 
-- **Coolify one-click template.** In hPanel → your VPS → **Operating System**
-  (OS & panel), pick the **Coolify** template and (re)install. This provisions
-  Ubuntu with Coolify already installed — **skip step 3**. Then just do the base
-  hardening + Tailscale (steps 1–2) and go straight to importing the stack
-  (step 4). Reinstalling wipes the disk, so do this before you have data.
+- **OS choice.** For the chosen **Compose-only** path, install plain
+  **Ubuntu 24.04 LTS** in hPanel → your VPS → **Operating System**. (The
+  one-click **Coolify** template exists there too — only pick it if you switch
+  to the Coolify-managed path. Reinstalling wipes the disk either way, so do it
+  before you have data.)
 - **Browser terminal.** hPanel exposes a browser terminal for the VPS, so you can
   run `scripts/bootstrap-vps.sh` and the setup commands without a local SSH
   client.
@@ -138,28 +139,59 @@ This hub targets a **Hostinger KVM2** VPS. Hostinger-specific tips:
 
 ## Security
 
-- **Never expose Coolify (`:8000`) or code-server (`:8080`) on the public
-  internet.** Bind to loopback (the compose file does) and reach them via
-  Tailscale or `ssh -L 8080:localhost:8080 user@vps`.
+- **Never expose the services (`:3000`/`:5678`/`:8080`/`:5432` — or Coolify's
+  `:8000` if you use it) on the public internet.** The compose file publishes on
+  `BIND_ADDR` (default loopback; set it to the Tailscale IP for tailnet access),
+  and `ufw` stays SSH-only so the public interface serves nothing else.
 - Keep the firewall to SSH-only; let Tailscale carry the rest.
-- Secrets live in `.env` / Coolify env — **never** in Git. `.env` is git-ignored.
+- Secrets live in `.env` (or Coolify env) — **never** in Git. `.env` is git-ignored.
 - Give the GitHub MCP token the **minimum** scope it needs.
 - For any genuinely public service (e.g. a future marketing site), front it with
-  Coolify's reverse proxy + TLS and put auth in front of anything sensitive.
+  a reverse proxy + TLS (Caddy, or Coolify's proxy) and put auth in front of
+  anything sensitive.
 
-## Appendix: Compose-only
+## Go live without Coolify (Compose-only) — the chosen path
 
-You don't need Coolify to run the hub — it's a convenience layer. The stack is a
-standard `docker-compose.yml`:
+You don't need Coolify — the stack is a standard `docker-compose.yml`, and this
+is the deployment mode this hub uses (see `DECISIONS.md` D-0021). Full runbook,
+Hostinger edition (hPanel **Browser terminal** works for all of it):
 
 ```bash
-cp .env.example .env && $EDITOR .env
-docker compose up -d
+# 0. In hPanel: install plain Ubuntu 24.04 LTS (NOT the Coolify template).
+# 1. Host bootstrap — base hardening + Tailscale + Docker Engine:
+sudo bash bootstrap-vps.sh --compose-only     # (fetch it from this repo first)
+sudo tailscale up                              # authenticate the node
+tailscale ip -4                                # note the 100.x.y.z address
+
+# 2. Get the repo and configure:
+sudo git clone https://github.com/starkvisionz/Ai-hub.git /opt/ai-hub
+cd /opt/ai-hub
+cp .env.example .env && nano .env
+#    → fill the secrets (CODE_SERVER_PASSWORD, POSTGRES_PASSWORD,
+#      N8N_ENCRYPTION_KEY, RESTIC_*, HUB_API_TOKEN, HUB_BASIC_AUTH_*…)
+#    → set BIND_ADDR=<tailscale ip>  (services reachable tailnet-only)
+#    → point SVC_*_URL at http://<tailscale ip>:<port> so dashboard links work
+
+# 3. First deploy:
+docker compose config -q && docker compose up -d --build
+curl "http://$(tailscale ip -4):3000/api/health"    # {"status":"ok",...}
+
+# 4. Updates (after each merge to main) — manual, cron, or n8n-triggered:
+bash scripts/deploy-compose.sh
 ```
 
-You lose the paneled UI, Git auto-deploy, and one-click TLS/backups, but the
-services are identical. Add Coolify later and import the same file.
+Service URLs once live (from any device on your tailnet):
+hub app `:3000` · code-server `:8080` · n8n `:5678` · Homepage `:3001` ·
+Postgres `:5432`.
+
+What you give up vs. Coolify — the paneled UI, Git auto-deploy, one-click
+TLS/backups — and what replaces each: the hub app + Homepage are the panels,
+`scripts/deploy-compose.sh` (run manually or on a cron/n8n trigger) is the
+deploy, restic is the backup. `restart: unless-stopped` + Docker's systemd unit
+bring everything back after a reboot. The CI-gated Coolify workflow in
+`DEPLOY.md` does not apply in this mode and stays dormant. You can still add
+Coolify later and import the same compose file.
 
 ---
 
-_Last updated: 2026-07-23._
+_Last updated: 2026-10-12._

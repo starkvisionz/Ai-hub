@@ -89,9 +89,11 @@ Different AI sessions stay coordinated two ways:
 - **VPS OS:** Ubuntu (LTS).
 - **VPS host:** stored as `VPS_HOST` in `.env` (git-ignored) — not committed, to
   avoid advertising the box publicly.
-- **Control panel:** Coolify (self-hosted, Docker-based).
-- **Access:** Tailscale (mesh VPN) in front of Coolify + code-server; Cloudflare
-  Tunnel only for any deliberately public service.
+- **Control plane:** **Compose-only — no Coolify** (D-0021). Docker Engine runs
+  the stack from `docker-compose.yml`; deploys via `scripts/deploy-compose.sh`
+  on the box; ports published on `BIND_ADDR` (the host's Tailscale IP).
+- **Access:** Tailscale (mesh VPN) in front of everything; `ufw` SSH-only;
+  Cloudflare Tunnel only for any deliberately public service.
 
 ## Resource budget (KVM2, ~8 GB RAM — RAM is the ceiling, not CPU)
 
