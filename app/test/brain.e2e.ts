@@ -16,10 +16,22 @@ import {
   linksFor,
   deleteLink,
 } from "../src/lib/memory";
+import {
+  upsertAgent,
+  listAgents,
+  getAgent,
+  deleteAgent,
+  logRun,
+  updateRun,
+  listRuns,
+  agentSummary,
+} from "../src/lib/agents";
 
 async function main() {
   // Clean slate so the run is deterministic (drop links first: FK dependency).
   await query("DROP TABLE IF EXISTS hub_links");
+  await query("DROP TABLE IF EXISTS hub_runs");
+  await query("DROP TABLE IF EXISTS hub_agents");
   const dropped = await query("DROP TABLE IF EXISTS hub_memory");
   assert.ok(dropped !== null, "DB reachable (DROP TABLE)");
 
@@ -104,6 +116,42 @@ async function main() {
   assert.equal((await linksFor(a!.id))?.length, 0, "links cascade-removed on entry delete");
   assert.equal((await recentMemory({ limit: 10 }))?.length, 2, "count after delete");
   assert.equal(await deleteMemory(c!.id), false, "re-delete returns false");
+
+  // ── Agent command center ──────────────────────────────────────────────────
+  const ag = await upsertAgent({ name: "claude-code", type: "claude-code", description: "driver" });
+  assert.ok(ag && ag.name === "claude-code", "agent registered");
+  assert.equal(await upsertAgent({ name: "bad name!" }), null, "invalid agent name rejected");
+  const hb = await upsertAgent({ name: "claude-code", current_task: "testing", project: "ai-hub" });
+  assert.equal(hb?.current_task, "testing", "heartbeat sets task");
+  assert.equal(hb?.type, "claude-code", "heartbeat keeps type");
+
+  const agents = await listAgents();
+  assert.equal(agents?.length, 1, "one agent listed");
+  assert.equal(agents?.[0].presence, "online", "fresh heartbeat -> online");
+
+  // Runs: start (becomes current task), finish (clears it), fail, filters.
+  const run = await logRun({ agent: "codex", task: "generate tests", project: "ai-hub" });
+  assert.ok(run && run.status === "running", "run started");
+  assert.equal((await getAgent("codex"))?.current_task, "generate tests", "run upserts agent + task");
+  const doneRun = await updateRun(run!.id, { status: "done", detail: "ok" });
+  assert.equal(doneRun?.status, "done", "run finished");
+  assert.ok(doneRun?.finished_at, "finished_at set");
+  assert.equal((await getAgent("codex"))?.current_task, "", "finish clears current task");
+  const failed = await logRun({ agent: "hermes", task: "warmup", status: "failed", detail: "no GPU" });
+  assert.equal(failed?.status, "failed", "failed run logged");
+  assert.equal((await listRuns({ status: "failed" }))?.length, 1, "status filter");
+  assert.equal((await listRuns({ agent: "codex" }))?.length, 1, "agent filter");
+  assert.equal(await updateRun(run!.id, { status: "nonsense" }), null, "bad status rejected");
+
+  const summary = await agentSummary();
+  assert.equal(summary?.agents, 3, "summary counts agents");
+  assert.equal(summary?.runs_24h, 2, "summary counts runs");
+  assert.equal(summary?.failed_24h, 1, "summary counts failures");
+  assert.ok((summary?.perDay.length ?? 0) >= 1, "runs perDay present");
+
+  assert.equal(await deleteAgent("hermes"), true, "agent unregistered");
+  assert.equal((await listAgents())?.length, 2, "two agents left");
+  assert.equal((await listRuns({ agent: "hermes" }))?.length, 1, "runs survive unregister");
 
   console.log("DB E2E: all assertions passed ✓");
 }
