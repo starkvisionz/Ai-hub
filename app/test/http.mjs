@@ -9,6 +9,10 @@
 
 const BASE = process.env.BASE_URL || "http://localhost:3000";
 const TOKEN = process.env.HUB_API_TOKEN || "";
+// Unique per invocation: runs survive unregister (by design), and CI executes
+// this suite twice against one database (open + auth mode) — a fixed agent name
+// would see the previous pass's runs in the filter assertions.
+const AGENT = "http-agent-" + Date.now();
 
 let failed = 0;
 const ok = (cond, msg) => {
@@ -118,7 +122,7 @@ async function main() {
   r = await api("/api/agents", {
     method: "POST",
     headers: jsonHeaders,
-    body: JSON.stringify({ name: "http-agent", type: "codex", project: "ai-hub" }),
+    body: JSON.stringify({ name: AGENT, type: "codex", project: "ai-hub" }),
   });
   ok(r.status === 201, "agent register 201");
   r = await api("/api/agents", {
@@ -129,13 +133,13 @@ async function main() {
   ok(r.status === 400, "bad agent name 400");
   r = await api("/api/agents");
   const reg = await json(r);
-  ok(reg.agents?.some((a) => a.name === "http-agent" && a.presence === "online"), "agent listed online");
+  ok(reg.agents?.some((a) => a.name === AGENT && a.presence === "online"), "agent listed online");
   ok(typeof reg.summary?.agents === "number", "agents summary present");
 
   r = await api("/api/runs", {
     method: "POST",
     headers: jsonHeaders,
-    body: JSON.stringify({ agent: "http-agent", task: "http run" }),
+    body: JSON.stringify({ agent: AGENT, task: "http run" }),
   });
   ok(r.status === 201, "run start 201");
   const runId = (await json(r)).run?.id;
@@ -147,15 +151,15 @@ async function main() {
   });
   ok(r.status === 200, "run done 200");
   ok((await json(r)).run?.finished_at != null, "run finished_at set");
-  r = await api("/api/runs?agent=http-agent");
+  r = await api(`/api/runs?agent=${AGENT}`);
   ok((await json(r)).runs?.length === 1, "runs filter by agent");
   r = await api("/api/runs", {
     method: "POST",
     headers: jsonHeaders,
-    body: JSON.stringify({ agent: "http-agent" }),
+    body: JSON.stringify({ agent: AGENT }),
   });
   ok(r.status === 400, "run without task 400");
-  r = await api("/api/agents?name=http-agent", { method: "DELETE" });
+  r = await api(`/api/agents?name=${AGENT}`, { method: "DELETE" });
   ok(r.status === 200, "agent unregister 200");
 
   // Delete (cascades the link) + bad delete.
