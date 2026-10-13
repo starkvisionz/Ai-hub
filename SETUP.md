@@ -153,8 +153,24 @@ This hub targets a **Hostinger KVM2** VPS. Hostinger-specific tips:
 ## Go live without Coolify (Compose-only) — the chosen path
 
 You don't need Coolify — the stack is a standard `docker-compose.yml`, and this
-is the deployment mode this hub uses (see `DECISIONS.md` D-0021). Full runbook,
-Hostinger edition (hPanel **Browser terminal** works for all of it):
+is the deployment mode this hub uses (see `DECISIONS.md` D-0021).
+
+**The one-command path** (fresh Ubuntu 24.04, hPanel Browser terminal or SSH):
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/starkvisionz/Ai-hub/main/scripts/go-live.sh -o go-live.sh
+sudo bash go-live.sh
+```
+
+[`scripts/go-live.sh`](./scripts/go-live.sh) does everything below in one shot —
+base hardening, Docker, Tailscale (`tailscale up` pauses once for its login
+URL), clone to `/opt/ai-hub`, **auto-generated secrets** in a fresh `.env`
+(`BIND_ADDR` set to the Tailscale IP), build + start, health gate — then prints
+your service URLs and the generated credentials. Idempotent; re-running keeps
+the existing `.env`. Off-site backups stay opt-in: fill the `RESTIC_*` vars,
+then `docker compose --profile backup up -d`.
+
+**The manual steps**, if you'd rather drive each one:
 
 ```bash
 # 0. In hPanel: install plain Ubuntu 24.04 LTS (NOT the Coolify template).

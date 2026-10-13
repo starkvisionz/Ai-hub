@@ -248,4 +248,18 @@ avoids a liveness daemon; runs double as heartbeats so instrumented agents are
 visible with one call. Verified green E2E against local Postgres 16 (lib + HTTP
 + the reporting script + page renders).
 
-_Add the next decision above this line as `D-0023`._
+## D-0023 — One-command go-live; restic becomes an opt-in profile   (2026-10-13, status: accepted)
+**Context:** Deployment still meant a multi-step manual runbook, and the stack
+could not boot at all without `RESTIC_*` set (`:?` guards) — a fresh box with no
+off-site bucket was dead on arrival.
+**Decision:** `scripts/go-live.sh` — a single idempotent script (hardening,
+Docker, Tailscale, clone to `/opt/ai-hub`, auto-generated secrets into a fresh
+git-ignored `.env` with `BIND_ADDR=<tailscale ip>`, build + start, health gate,
+prints URLs + credentials). `restic-backup` moves to a `backup` compose profile
+with soft env defaults: the stack boots without backup config, and backups start
+with `docker compose --profile backup up -d` once `RESTIC_*` is set.
+**Why:** Deploy = two pasted lines on the box; secrets never pass through chat
+or Git. Opt-in backups trade "fails safe at boot" for "must remember to enable"
+— mitigated by the script's closing checklist and SETUP.md.
+
+_Add the next decision above this line as `D-0024`._
