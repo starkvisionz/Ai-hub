@@ -232,4 +232,20 @@ rebuild, prune, health-gated on the hub-app container). The CI-gated Coolify
 Homepage already provide the panels; restic the backups; the script the deploys.
 Trade-off accepted: no one-click UI deploys/TLS — not needed tailnet-internal.
 
-_Add the next decision above this line as `D-0022`._
+## D-0022 — Agent command center: registry + runs over one reporting API   (2026-10-13, status: accepted)
+**Context:** The hub coordinates multiple agents (Claude Code, Codex, Hermes,
+n8n) but had no view of who exists, who's alive, or what they're doing.
+**Decision:** Two new brain tables — `hub_agents` (registry; heartbeat upserts
+advance `last_seen`) and `hub_runs` (activity; a run report is also a heartbeat,
+`running` becomes the agent's current task, finishing clears it) — behind
+`/api/agents` + `/api/runs`, surfaced at `/agents` (live grid with presence
+pulses, stats + runs sparkline, filterable stream) and `/agents/[name]`.
+**Presence is derived, not stored** (online <2 min, idle <15 min since last
+heartbeat) so it can't go stale. One `scripts/agent-report.sh` integrates every
+agent; Hermes registers but reads offline until a GPU host exists (D-0010).
+**Why:** A uniform HTTP interface beats per-agent adapters; derived presence
+avoids a liveness daemon; runs double as heartbeats so instrumented agents are
+visible with one call. Verified green E2E against local Postgres 16 (lib + HTTP
++ the reporting script + page renders).
+
+_Add the next decision above this line as `D-0023`._
