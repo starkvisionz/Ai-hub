@@ -1,6 +1,7 @@
 import { ServiceCard } from "@/components/ServiceCard";
 import { MemoryPanel } from "@/components/MemoryPanel";
 import { StatRow } from "@/components/StatRow";
+import { AgentsStrip } from "@/components/AgentsStrip";
 import { LiveRefresh } from "@/components/LiveRefresh";
 import { services, type HubService } from "@/lib/services";
 import { checkAll } from "@/lib/health";
@@ -30,6 +31,8 @@ export default async function Home() {
       </header>
 
       <StatRow />
+
+      <AgentsStrip />
 
       {groups.map((group) => (
         <section key={group} className="mb-10">

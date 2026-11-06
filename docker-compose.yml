@@ -96,11 +96,15 @@ services:
     container_name: ai-hub-restic
     restart: unless-stopped
     hostname: ai-hub
+    # Opt-in: starts only with `docker compose --profile backup up -d`, once the
+    # RESTIC_* vars point at a real off-site repo. Keeps a fresh box bootable
+    # before backups are configured.
+    profiles: ["backup"]
     environment:
       RUN_ON_STARTUP: "false"
       BACKUP_CRON: ${RESTIC_BACKUP_CRON:-0 3 * * *}      # daily at 03:00
-      RESTIC_REPOSITORY: ${RESTIC_REPOSITORY:?set RESTIC_REPOSITORY in .env}
-      RESTIC_PASSWORD: ${RESTIC_PASSWORD:?set RESTIC_PASSWORD in .env}
+      RESTIC_REPOSITORY: ${RESTIC_REPOSITORY:-}
+      RESTIC_PASSWORD: ${RESTIC_PASSWORD:-}
       # Provider creds (e.g. Backblaze B2 / S3) — set the ones your repo needs:
       AWS_ACCESS_KEY_ID: ${RESTIC_AWS_ACCESS_KEY_ID:-}
       AWS_SECRET_ACCESS_KEY: ${RESTIC_AWS_SECRET_ACCESS_KEY:-}

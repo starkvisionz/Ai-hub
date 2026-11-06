@@ -50,6 +50,24 @@ actions (entry delete, link removal) use a two-step confirm that auto-reverts.
   controls as the list (deleting redirects back to `/brain`), linked entries
   (in/out, by relation), and a **type-ahead link picker** — search entries by
   content (or type `#id`) to create a link; remove links inline.
+- `/agents` — the **agent command center**: live registry (presence pulses:
+  online/idle/offline from heartbeats), stat tiles (online, running now,
+  runs/failures per 24h), a 14-day runs sparkline, one-click registration
+  presets (Claude Code · Codex · Hermes) + a custom form, and a filterable
+  activity stream (by agent and status, paginated). Auto-refreshes every ~15s.
+- `/agents/[name]` — agent detail: presence, project, current task, run history,
+  that agent's shared-brain entries, and a two-step unregister (runs are kept).
+- `/api/agents` — the registry.
+  - `GET` → `{ agents: [{ …, presence, runs_24h, failed_24h }], summary }`.
+  - `POST` `{ name, type?, description?, project?, current_task? }` → register
+    or **heartbeat** (upsert by name; `last_seen` always advances) (201).
+  - `DELETE ?name=…` → unregister (runs are kept).
+- `/api/runs` — the activity stream.
+  - `GET ?agent=&status=&limit=&offset=` → runs, newest first.
+  - `POST` `{ agent, task, project?, status?, detail? }` → log a run (also
+    heartbeats the agent; a `running` run becomes its current task) (201).
+  - `PATCH ?id=` `{ status, detail? }` → finish/update (`done`/`failed` set
+    `finished_at` and clear the agent's current task).
 - `/api/health` — JSON liveness probe (`{ status: "ok", ... }`). Left open even
   when Basic Auth is on, so Docker/Coolify healthchecks work.
 - `/api/memory` — the shared brain.
@@ -72,6 +90,35 @@ actions (entry delete, link removal) use a two-step confirm that auto-reverts.
   - `GET /api/links?id=123` → related entries (both directions).
   - `POST /api/links` `{ from_id, to_id, rel? }` → create a link (201).
   - `DELETE /api/links?link_id=123` → remove a link.
+
+## Agent command center — integrating agents
+
+All agents report through one interface: `POST /api/agents` (heartbeat) and
+`POST`/`PATCH /api/runs` (work log). [`scripts/agent-report.sh`](../scripts/agent-report.sh)
+wraps both — set `HUB_URL` (e.g. `http://<tailscale-ip>:3000`) and
+`HUB_API_TOKEN` (when the API is gated):
+
+```bash
+scripts/agent-report.sh heartbeat <name> [type] [task] [project]
+id=$(scripts/agent-report.sh run-start <name> "<task>" [project])
+scripts/agent-report.sh run-done "$id" "detail"      # or run-fail
+```
+
+- **Claude Code** — one-click register the `claude-code` preset on `/agents`,
+  then have sessions heartbeat: add to the repo's `CLAUDE.md` workflow (or a
+  `SessionStart` hook) —
+  `scripts/agent-report.sh heartbeat claude-code claude-code "<current task>" <repo>`.
+- **Codex** — wrap invocations:
+  `id=$(scripts/agent-report.sh run-start codex "<prompt summary>")`, run
+  `codex exec …`, then `run-done`/`run-fail "$id"`.
+- **Hermes** — register the preset now (it shows **offline** until a GPU host
+  exists — see `DECISIONS.md` D-0010); when it runs, its wrapper heartbeats like
+  any other agent.
+- **n8n** — an HTTP node POSTing to `/api/agents` on a schedule makes n8n's own
+  health visible too.
+
+Presence is derived from heartbeats: **online** < 2 min, **idle** < 15 min,
+**offline** after.
 
 ## Shared brain (Postgres)
 

@@ -13,8 +13,12 @@ function last14Days(): string[] {
 
 export function Sparkline({
   perDay,
+  label = "activity · last 14 days",
+  unit = "entries",
 }: {
   perDay: { day: string; count: number }[];
+  label?: string;
+  unit?: string;
 }) {
   const counts = new Map(perDay.map((d) => [d.day, d.count]));
   const days = last14Days();
@@ -31,15 +35,15 @@ export function Sparkline({
     <div className="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
       <div className="mb-3 flex items-center justify-between">
         <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-          activity · last 14 days
+          {label}
         </span>
-        <span className="text-xs text-slate-400">{total} entries</span>
+        <span className="text-xs text-slate-400">{total} {unit}</span>
       </div>
       <svg
         viewBox={`0 0 ${W} ${H}`}
         className="h-10 w-full"
         role="img"
-        aria-label={`Activity over the last 14 days, ${total} entries total`}
+        aria-label={`${label}: ${total} ${unit} total`}
         preserveAspectRatio="none"
       >
         {series.map((v, i) => {

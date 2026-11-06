@@ -232,4 +232,34 @@ rebuild, prune, health-gated on the hub-app container). The CI-gated Coolify
 Homepage already provide the panels; restic the backups; the script the deploys.
 Trade-off accepted: no one-click UI deploys/TLS — not needed tailnet-internal.
 
-_Add the next decision above this line as `D-0022`._
+## D-0022 — Agent command center: registry + runs over one reporting API   (2026-10-13, status: accepted)
+**Context:** The hub coordinates multiple agents (Claude Code, Codex, Hermes,
+n8n) but had no view of who exists, who's alive, or what they're doing.
+**Decision:** Two new brain tables — `hub_agents` (registry; heartbeat upserts
+advance `last_seen`) and `hub_runs` (activity; a run report is also a heartbeat,
+`running` becomes the agent's current task, finishing clears it) — behind
+`/api/agents` + `/api/runs`, surfaced at `/agents` (live grid with presence
+pulses, stats + runs sparkline, filterable stream) and `/agents/[name]`.
+**Presence is derived, not stored** (online <2 min, idle <15 min since last
+heartbeat) so it can't go stale. One `scripts/agent-report.sh` integrates every
+agent; Hermes registers but reads offline until a GPU host exists (D-0010).
+**Why:** A uniform HTTP interface beats per-agent adapters; derived presence
+avoids a liveness daemon; runs double as heartbeats so instrumented agents are
+visible with one call. Verified green E2E against local Postgres 16 (lib + HTTP
++ the reporting script + page renders).
+
+## D-0023 — One-command go-live; restic becomes an opt-in profile   (2026-10-13, status: accepted)
+**Context:** Deployment still meant a multi-step manual runbook, and the stack
+could not boot at all without `RESTIC_*` set (`:?` guards) — a fresh box with no
+off-site bucket was dead on arrival.
+**Decision:** `scripts/go-live.sh` — a single idempotent script (hardening,
+Docker, Tailscale, clone to `/opt/ai-hub`, auto-generated secrets into a fresh
+git-ignored `.env` with `BIND_ADDR=<tailscale ip>`, build + start, health gate,
+prints URLs + credentials). `restic-backup` moves to a `backup` compose profile
+with soft env defaults: the stack boots without backup config, and backups start
+with `docker compose --profile backup up -d` once `RESTIC_*` is set.
+**Why:** Deploy = two pasted lines on the box; secrets never pass through chat
+or Git. Opt-in backups trade "fails safe at boot" for "must remember to enable"
+— mitigated by the script's closing checklist and SETUP.md.
+
+_Add the next decision above this line as `D-0024`._

@@ -7,6 +7,26 @@
 
 ## Recently done (post-merge)
 
+- **2026-10-13** — **One-command go-live** (D-0023, on PR #5):
+  `scripts/go-live.sh` takes a fresh Ubuntu box to a running hub in one paste
+  (hardening → Docker → Tailscale → clone → generated `.env` → up → health
+  gate → prints URLs/credentials). `restic-backup` is now an opt-in `backup`
+  compose profile so the stack boots before backups are configured. Verified:
+  compose validates with no `RESTIC_*` set; restic absent by default, present
+  under `--profile backup`. **Go-live = merge PR #5, then run the two lines in
+  SETUP.md §Go live on the box.**
+
+- **2026-10-13** — **Agent command center** (D-0022): `hub_agents` +
+  `hub_runs` tables; `/api/agents` (heartbeat upsert, DELETE) + `/api/runs`
+  (log/finish, filters); `/agents` page (presence-pulse cards, stat tiles, runs
+  sparkline, one-click presets for Claude Code/Codex/Hermes, filterable
+  paginated activity stream) + `/agents/[name]` detail (runs, brain entries,
+  unregister); dashboard `AgentsStrip`; Agents in the nav;
+  `scripts/agent-report.sh` as the uniform integration for all agents.
+  Both test suites extended; **all green against local Postgres 16** including
+  a live run of the reporting script. Next: once deployed, register the presets
+  and wire real heartbeats (snippets in app/README §Agent command center).
+
 - **2026-10-12** — **Compose-only go-live kit** (no Coolify — D-0021): all
   published ports now bind on `BIND_ADDR` (default loopback; set to the
   Tailscale IP in `.env`); `bootstrap-vps.sh --compose-only` installs Docker
